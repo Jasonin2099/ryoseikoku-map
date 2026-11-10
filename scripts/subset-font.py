@@ -87,6 +87,8 @@ def collect_chars() -> str:
         "マミムメモャヤュユョヨラリルレロヮワヰヱヲンヴヵヶーヽヾ"
         "〇々〆〤"
         "诸說諸説一宮一宫"
+        # Japanese shinjitai often missing from a Chinese-first subset
+        "国辺沢竜巣県広対壱浜亀穂浄労駅髪庁児円亜楽黒様経総関戦残発仮会伝図写処台気"
     )
     chars.update(extras)
     # drop controls, keep whitespace

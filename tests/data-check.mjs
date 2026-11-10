@@ -61,3 +61,19 @@ for (const id of fromMap) {
 }
 
 console.log('data-check ok: 68 provinces, grade/distance/ichinomiya, map covers all ids');
+
+const regions = JSON.parse(await readFile(path.join(root, 'data/kuni-regions.json'), 'utf8'));
+if (!regions.kuni) throw new Error('kuni-regions missing kuni');
+for (const id of ids) {
+  const rec = regions.kuni[id];
+  if (!rec) throw new Error('kuni-regions missing ' + id);
+  if (!rec.d || rec.d.length < 8) throw new Error('kuni-regions empty path ' + id);
+  if (!rec.bbox || rec.bbox.length !== 4) throw new Error('kuni-regions bbox ' + id);
+}
+for (const id of Object.keys(regions.kuni)) {
+  if (!ids.has(id)) throw new Error('kuni-regions extra id ' + id);
+}
+if (!regions.outside || !regions.outside.hokkaido || !regions.outside.ryukyu) {
+  throw new Error('kuni-regions missing outside groups');
+}
+console.log('data-check ok: kuni-regions covers 68 provinces');

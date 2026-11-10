@@ -52,6 +52,7 @@ async function assetVersion() {
     'src/index.html',
     'data/map.json',
     'data/provinces.json',
+    'data/kuni-regions.json',
   ];
   const hash = createHash('sha256');
   for (const rel of parts) {
@@ -118,6 +119,7 @@ async function copyTo(src, destName) {
 
 await copyTo(path.join(root, 'data/map.json'), 'map.json');
 await copyTo(path.join(root, 'data/provinces.json'), 'provinces.json');
+await copyTo(path.join(root, 'data/kuni-regions.json'), 'kuni-regions.json');
 await copyTo(path.join(root, 'assets/icon.svg'), 'icon.svg');
 await copyTo(path.join(root, 'assets/icon-32.png'), 'icon-32.png');
 await copyTo(path.join(root, 'assets/apple-touch-icon.png'), 'apple-touch-icon.png');

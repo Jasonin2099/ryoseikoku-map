@@ -4,8 +4,15 @@
 <meta charset="UTF-8">
 <script>
 (function(){
-  var k='kuni-theme', t=null;
-  try{ t=localStorage.getItem(k); }catch(e){}
+  var lang='ja';
+  try{
+    var q=new URLSearchParams(location.search).get('lang');
+    if(q==='zh'||q==='ja') lang=q;
+    else { var s=localStorage.getItem('kuni-lang'); if(s==='zh'||s==='ja') lang=s; }
+  }catch(e){}
+  document.documentElement.lang = (lang==='zh') ? 'zh-CN' : 'ja';
+  var t=null;
+  try{ t=localStorage.getItem('kuni-theme'); }catch(e){}
   if(t!=='light' && t!=='dark'){
     t=(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
   }
@@ -46,9 +53,13 @@
 <body>
 
 <header class="page-head">
-  <div class="head-toggles">
-    <button class="bar-toggle" id="langToggle" type="button" aria-label="中文に切り替え">中文</button>
+  <div class="head-toggles head-toggles-left">
     <button class="bar-toggle" id="themeToggle" type="button" aria-label="ダークモードに切り替え">ダーク</button>
+  </div>
+  <div class="head-toggles head-toggles-right">
+    <button class="bar-toggle lang-toggle" id="langToggle" type="button" aria-label="中文に切り替え">
+      <span data-lang-opt="ja">日本語</span><span class="lang-sep"> / </span><span data-lang-opt="zh">中文</span>
+    </button>
   </div>
   <div class="head-inner">
     <p class="eyebrow">五畿七道 · GOKI&nbsp;SHICHIDŌ</p>
@@ -68,30 +79,38 @@
   <ul class="search-results" id="searchResults" hidden></ul>
 </div>
 
+<div class="workspace" id="workspace">
 <main class="stage" id="stage">
   <div class="map-wrap" id="mapWrap">
-    <svg id="mapSvg" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="日本の令制国地図">
+    <svg id="mapSvg" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="日本の令制国地図" viewBox="0 0 1100 909" preserveAspectRatio="xMidYMid meet">
+      <rect id="mapSea" class="map-sea" x="-2000" y="-2000" width="6000" height="6000"></rect>
       <g id="mapLayer"></g>
+      <g id="kuniLayer"></g>
     </svg>
+    <div class="kuni-labels" id="kuniLabels" aria-hidden="true"></div>
     <div class="tip" id="tip" aria-hidden="true">
       <span class="tip-kanji" id="tipKanji"></span>
       <span class="tip-kana" id="tipKana"></span>
     </div>
+    <nav class="crumb" id="crumb" hidden aria-label="表示範囲"></nav>
   </div>
   <p class="hint" id="hint">地域をタップして旧国名を見る</p>
 </main>
+
+<aside class="drawer" id="drawer" aria-hidden="true" aria-label="令制国の詳細">
+  <div class="drawer-inner" id="drawerInner">
+    <div class="drawer-handle" id="drawerHandle" hidden></div>
+    <button class="drawer-close" id="drawerClose" type="button" aria-label="閉じる">×</button>
+    <div class="drawer-body" id="drawerBody" aria-live="polite"></div>
+  </div>
+</aside>
+</div>
 
 <footer class="site-foot">
   <p id="footNote"></p>
   <p id="footFont"></p>
 </footer>
 
-<aside class="drawer" id="drawer" aria-hidden="true" aria-label="令制国の詳細">
-  <div class="drawer-inner" id="drawerInner">
-    <button class="drawer-close" id="drawerClose" type="button" aria-label="閉じる">×</button>
-    <div class="drawer-body" id="drawerBody" aria-live="polite"></div>
-  </div>
-</aside>
 <div class="scrim" id="scrim" hidden></div>
 
 <script src="app.js"></script>

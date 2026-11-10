@@ -58,6 +58,8 @@ npm run serve
 - `data/map.json` は Natural Earth 10m Admin-1 v5.1.1（パブリックドメイン）から作っています。出所の説明は `data/SOURCES.md` と `LICENSE-DATA.md` にあります。
 - 形をやり直すときだけ `python3 scripts/build-map.py` を走らせます。県番号と令制国の対応がずれていないか、`npm run test:data` で確認してください。
 - 北海道の幾何に北方四島は含まれません。東京の小笠原は意図的に外しています。
+- クリック判定と国名ラベルは `data/kuni-regions.json` です。現行の県境を令制国のおおよその範囲に分けたもので、歴史的国境ではありません。形をやり直すときは `python3 scripts/build-kuni-regions.py`。
+- 画面上の短辺が 44px 未満の国は、まず所属の道に拡大し、まだ小さければ近傍（その国の囲みの3倍）へ、その次で選ぶ、という段階です。
 
 ## 一宮
 
