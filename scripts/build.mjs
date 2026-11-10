@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { mkdir, cp, readFile, writeFile, rm } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -34,8 +35,36 @@ function runPython(script) {
 
 runPython('scripts/subset-font.py');
 
+async function assetVersion() {
+  const git = spawnSync('git', ['-C', root, 'rev-parse', '--short=7', 'HEAD'], {
+    encoding: 'utf8',
+  });
+  const dirty = spawnSync('git', ['-C', root, 'status', '--porcelain'], {
+    encoding: 'utf8',
+  });
+  if (git.status === 0 && dirty.status === 0 && dirty.stdout.trim() === '') {
+    const hash = git.stdout.trim();
+    if (/^[0-9a-f]+$/.test(hash)) return hash;
+  }
+  const parts = [
+    'src/app.js',
+    'src/style.css',
+    'src/index.html',
+    'data/map.json',
+    'data/provinces.json',
+  ];
+  const hash = createHash('sha256');
+  for (const rel of parts) {
+    hash.update(rel);
+    hash.update(await readFile(path.join(root, rel)));
+  }
+  return hash.digest('hex').slice(0, 7);
+}
 
-const jsSrc = await readFile(path.join(root, 'src/app.js'), 'utf8');
+const version = await assetVersion();
+
+let jsSrc = await readFile(path.join(root, 'src/app.js'), 'utf8');
+jsSrc = jsSrc.replaceAll('__ASSET_VERSION__', version);
 const jsMin = await minifyJs(jsSrc, {
   compress: true,
   mangle: true,
@@ -44,15 +73,17 @@ const jsMin = await minifyJs(jsSrc, {
 if (jsMin.error) throw jsMin.error;
 await writeFile(path.join(dist, 'app.min.js'), jsMin.code);
 
-const cssSrc = await readFile(path.join(root, 'src/style.css'), 'utf8');
+let cssSrc = await readFile(path.join(root, 'src/style.css'), 'utf8');
+cssSrc = cssSrc.replaceAll('jinghua-sub.woff2', `jinghua-sub.woff2?v=${version}`);
 const cssMin = new CleanCSS({ level: 2 }).minify(cssSrc);
 if (cssMin.errors.length) throw new Error(cssMin.errors.join('\n'));
 await writeFile(path.join(dist, 'style.min.css'), cssMin.styles);
 
 let html = await readFile(path.join(root, 'src/index.html'), 'utf8');
 html = html
-  .replace('href="style.css"', 'href="style.min.css?v=k4"')
-  .replace('src="app.js"', 'src="app.min.js?v=k4"');
+  .replace('href="style.css"', `href="style.min.css?v=${version}"`)
+  .replace('src="app.js"', `src="app.min.js?v=${version}"`)
+  .replace('href="jinghua-sub.woff2"', `href="jinghua-sub.woff2?v=${version}"`);
 
 if (site) {
   const canon = site.canonical ? site.canonical.replace(/\/?$/, '/') : '';
@@ -96,4 +127,4 @@ const ogSrc = site?.ogImageFile
   : path.join(root, 'assets/og.png');
 if (existsSync(ogSrc)) await copyTo(ogSrc, 'og.png');
 
-console.log('built', dist);
+console.log('built', dist, 'v=' + version);

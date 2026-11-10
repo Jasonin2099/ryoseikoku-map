@@ -36,7 +36,7 @@ npm run serve
 - `npm test` は `tests/data-check.mjs`、`npm run build`、Playwright（`tests/e2e.spec.js`）をこの順で走らせます。
 - 開発用サーバは **http://localhost:4179/** です。4173 番は使わないでください（他のプロジェクトと衝突します）。
 - 公式の原書体は作者の案内（微信公眾号と網盤）でのみ入手でき、安定した公開ダウンロード URL はありません。GitHub Actions では環境変数 `FONT_OPTIONAL=1` を立て、サブセットを省略してビルドします。見出しはシステムの明朝体に落ちます。原ファイルを置いた環境では、この変数を立てなければ従来どおり SHA-256 を検証してサブセットします。
-- キャッシュbust 用のクエリ（`?v=k3` など）は `scripts/build.mjs` と `src/app.js` の fetch にあります。JS / CSS / JSON を配ったあとに CDN やサーバがキャッシュするなら、数字を上げてください。
+- キャッシュbust 用のクエリは `scripts/build.mjs` がビルド時に付けます。作業ツリーがきれいなら git の短縮ハッシュ、汚れているか git が使えないときはソースの内容ハッシュです。`src/app.js` の `__ASSET_VERSION__` と、CSS / フォントの URL も同じ値に置き換わります。手動で数字を上げる必要はありません。
 - リポジトリ同梱の OGP 画像（ドメインなし）を描き直すときは、先にビルドしてから `npm run og` です。`scripts/og.py` は `dist/jinghua-sub.woff2` を使います。
 - 演示サイトを、リポジトリの外の設定でビルドする例:
 

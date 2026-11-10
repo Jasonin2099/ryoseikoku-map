@@ -110,8 +110,8 @@
     applyTheme();
 
     Promise.all([
-      fetch('map.json?v=k4').then(function(r){ return r.json(); }),
-      fetch('provinces.json?v=k4').then(function(r){ return r.json(); })
+      fetch('map.json?v=__ASSET_VERSION__').then(function(r){ return r.json(); }),
+      fetch('provinces.json?v=__ASSET_VERSION__').then(function(r){ return r.json(); })
     ]).then(function(res){
       mapData  = res[0];
       provData = res[1];
