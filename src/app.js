@@ -6,7 +6,7 @@
   var TAP_MIN = 44;
   var LABEL_MIN = 56;
   var PAD = 0.12;
-  var ZOOM_MAX = 10;
+  var ZOOM_MAX = 24;
   var PAN_PAD = 0.05;
   var ANIM_IN = 320;
   var ANIM_OUT = 260;
@@ -50,7 +50,7 @@
           grade:'等級', distance:'距離', kokufu:'国府', ichinomiya:'一宮', disputed:'諸説あり', none:'記載なし',
           prefLabel:'現在の都府県', nation:'全国', nationAria:'全国を表示', crumbAria:'表示範囲',
           hokkaidoName:'北海道', ryukyuName:'琉球',
-          footNote:'地図は現行の都道府県境です。等級と距離は延喜式、国府の郡名は和名類聚抄・拾芥抄、一宮は複数の名簿を照合した社名です（諸説のある国は併記）。',
+          footNote:'地図の境界は、幕末期の村域データをもとにした令制国の復元です（典拠に基づく近似的な再構成）。等級と距離は延喜式、国府の郡名は和名類聚抄・拾芥抄、一宮は複数の名簿を照合した社名です（諸説のある国は併記）。',
           footFont:'見出し書体：京華老宋体（特里王）',
           wamyo:'和名抄', jikaisho:'拾芥抄', iroha:'伊呂波字類抄',
           shareText:function(p,prefs){ return p.ja+'（'+p.kana+'）は、今の'+prefs+'。\nあなたの地元は昔、何国？'; } },
@@ -68,7 +68,7 @@
           grade:'等级', distance:'距离', kokufu:'国府', ichinomiya:'一宫', disputed:'诸说', none:'无记载',
           prefLabel:'现在的都府县', nation:'全国', nationAria:'返回全国', crumbAria:'当前范围',
           hokkaidoName:'北海道', ryukyuName:'琉球',
-          footNote:'地图为现行都道府县边界。等级与距离据延喜式，国府郡名据和名类聚抄、拾芥抄，一宫据多份名录对照（有诸说者一并列出）。',
+          footNote:'地图边界是根据幕末期村域数据复原的令制国范围（依据出典的近似重建）。等级与距离据延喜式，国府郡名据和名类聚抄、拾芥抄，一宫据多份名录对照（有诸说者一并列出）。',
           footFont:'标题字体：京华老宋体（特里王）',
           wamyo:'和名抄', jikaisho:'拾芥抄', iroha:'伊吕波字类抄',
           shareText:function(p,prefs){ return p.ja+'（'+p.kana+'）就是今天的'+prefs+'。\n你的家乡古时叫什么国？'; } }
@@ -364,7 +364,7 @@
       el = regionEls[key];
       provs = JSON.parse(el.getAttribute('data-provs') || '[]');
       if (!provs.length){
-        el.classList.toggle('is-match', !filtering || (activeDao === 'all' && (!searchQuery || normalize(el.getAttribute('data-pref-name')).indexOf(searchQuery) >= 0)));
+        el.classList.toggle('is-match', !filtering || (activeDao === 'all' && (!searchQuery || normalize(el.getAttribute('data-name') || '').indexOf(searchQuery) >= 0)));
         continue;
       }
       any = false;
@@ -526,12 +526,16 @@
       path = document.createElementNS(SVGNS, 'path');
       path.setAttribute('d', info.d);
       path.setAttribute('class', 'region');
-      path.setAttribute('data-pref-id', key);
-      path.setAttribute('data-pref-name', info.ja);
-      path.setAttribute('data-provs', JSON.stringify(info.provs || []));
-      fill = (info.provs && info.provs.length)
-              ? 'var(' + daoMeta[provById[info.provs[0]].dao].color + ')'
-              : 'var(--dao-none)';
+      path.setAttribute('data-id', key);
+      path.setAttribute('data-name', info.ja || '');
+      if (info.kind === 'outside' || key === 'hokkaido' || key === 'ryukyu'){
+        path.setAttribute('data-provs', '[]');
+        fill = 'var(--dao-none)';
+      } else {
+        var dao = info.dao || (provById[key] && provById[key].dao);
+        path.setAttribute('data-provs', JSON.stringify([key]));
+        fill = (dao && daoMeta[dao]) ? 'var(' + daoMeta[dao].color + ')' : 'var(--dao-none)';
+      }
       path.style.fill = fill;
       elLayer.appendChild(path);
       regionEls[key] = path;
@@ -586,7 +590,7 @@
     var ins = mapData.inset, Z = 1.5;
     var cx = ins.x + ins.w / 2, cy = ins.y + ins.h / 2;
     insetXform = 'translate(' + cx + ' ' + cy + ') scale(' + Z + ') translate(' + (-cx) + ' ' + (-cy) + ')';
-    var ok = regionEls['47'];
+    var ok = regionEls['ryukyu'];
     if (ok) ok.setAttribute('transform', insetXform);
     ins = { x: cx - ins.w * Z / 2, y: cy - ins.h * Z / 2, w: ins.w * Z, h: ins.h * Z };
     var frame = document.createElementNS(SVGNS, 'rect');
@@ -809,10 +813,16 @@
     return out;
   }
 
+  function canvasAspect(){
+    var r = elSvg && elSvg.getBoundingClientRect();
+    if (r && r.width > 1 && r.height > 1) return r.width / r.height;
+    return MAP_W / MAP_H;
+  }
+
   function fitBBox(bbox, opts){
     if (!bbox || bbox.w <= 0 || bbox.h <= 0) return { x:0, y:0, w:MAP_W, h:MAP_H };
     var padded = inflate(bbox, PAD);
-    var aspect = MAP_W / MAP_H;
+    var aspect = canvasAspect();
     var vis = visibleFractions(opts || {});
     var vh = Math.max(padded.w / (vis.fw * aspect), padded.h / vis.fh);
     var vw = aspect * vh;
@@ -1227,9 +1237,9 @@
     manualZoom = false;
     var bbox = displayBBox(kind, id);
     var dao = (kind === 'kuni' && provById[id]) ? provById[id].dao : id;
-    var fit = fitBBox(bbox, { forDrawer:true });
     applySelection(kind, id);
     openDrawerUI();
+    var fit = fitBBox(bbox, { forDrawer:true });
     zoomToBBox(bbox, { forDrawer:true });
 
     if (histLock || opts.fromPop) { renderCrumb(); return; }
@@ -1346,6 +1356,23 @@
     elDrawerBody.scrollTop = 0;
   }
 
+  function syncMobileMapFrame(){
+    if (!elMapWrap || !elSvg) return;
+    var sheet = isMobile() && document.body.classList.contains('has-sheet') && elDrawer && elDrawer.classList.contains('open');
+    if (!sheet){
+      elMapWrap.style.height = '';
+      elSvg.style.height = '';
+      elSvg.style.aspectRatio = '';
+      return;
+    }
+    var wrapTop = elMapWrap.getBoundingClientRect().top;
+    var drawerTop = elDrawer.getBoundingClientRect().top;
+    var h = Math.max(160, Math.floor(drawerTop - wrapTop));
+    elMapWrap.style.height = h + 'px';
+    elSvg.style.height = h + 'px';
+    elSvg.style.aspectRatio = 'auto';
+  }
+
   function ensureMapVisible(){
     if (!isMobile() || !elMapWrap) return;
     var wrap = elMapWrap.getBoundingClientRect();
@@ -1354,6 +1381,7 @@
     var root = document.scrollingElement || document.documentElement;
     if (root) root.scrollTop = y;
     else window.scrollTo(0, y);
+    syncMobileMapFrame();
   }
 
   function openDrawerUI(){
@@ -1385,6 +1413,7 @@
     elDrawer.classList.remove('open', 'height-half', 'height-full');
     elDrawer.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('has-panel', 'has-sheet');
+    syncMobileMapFrame();
     elScrim.classList.remove('show');
     setTimeout(function(){ if (!elDrawer.classList.contains('open')) elScrim.hidden = true; }, 420);
   }
@@ -1466,7 +1495,7 @@
         elDrawer.classList.add('height-half');
         elDrawer.style.setProperty('--drawer-h', '44vh');
       }
-      setTimeout(function(){ refitSelection(); }, 80);
+      setTimeout(function(){ syncMobileMapFrame(); refitSelection(); }, 80);
     }
     elDrawerHandle.addEventListener('pointerup', endDrag);
     elDrawerHandle.addEventListener('pointercancel', endDrag);
@@ -1494,7 +1523,7 @@
   function zoomAround(clientX, clientY, factor){
     var p = svgFromClient(clientX, clientY);
     var newW = Math.min(MAP_W, Math.max(MAP_W / ZOOM_MAX, vb.w / factor));
-    var newH = newW * MAP_H / MAP_W;
+    var newH = newW / canvasAspect();
     var nx = p.x - (p.x - vb.x) * (newW / vb.w);
     var ny = p.y - (p.y - vb.y) * (newH / vb.h);
     setVB(clampPan({ x:nx, y:ny, w:newW, h:newH }));
@@ -1558,7 +1587,7 @@
         };
       })();
       var newW = Math.min(MAP_W, Math.max(MAP_W / ZOOM_MAX, orig.w / factor));
-      var newH = newW * MAP_H / MAP_W;
+      var newH = newW / canvasAspect();
       var nx = p.x - (p.x - orig.x) * (newW / orig.w);
       var ny = p.y - (p.y - orig.y) * (newH / orig.h);
       /* also pan mid movement */
@@ -1666,9 +1695,13 @@
     bindDrawerDrag();
     bindMapGestures();
     window.addEventListener('resize', function(){
+      syncMobileMapFrame();
       if (selectedId && elDrawer.classList.contains('open')) refitSelection();
       else updateLabels();
     });
+    window.addEventListener('scroll', function(){
+      if (isMobile() && document.body.classList.contains('has-sheet')) syncMobileMapFrame();
+    }, { passive:true });
   }
 
   function esc(s){

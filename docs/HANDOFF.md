@@ -11,7 +11,7 @@
    pip install fonttools brotli
    ```
 
-   地図を Natural Earth から再生成するときだけ、さらに `pyshp` と `shapely` が必要です。通常のビルドには不要です（`data/map.json` はすでに入っています）。
+   地図を再生成するときだけ、さらに `pyshp` と `shapely` が必要です。通常のビルドには不要です（`data/map.json` はすでに入っています）。
 3. 京華老宋体 v3.0 の原ファイルを、作者の公式な案内に従って入手する（`FONT-NOTICE.md`）。次のいずれかに置く。
 
    - `.cache/fonts/京華老宋体v3.0.ttf`（推奨）
@@ -55,10 +55,10 @@ npm run serve
 
 ## 地図
 
-- `data/map.json` は Natural Earth 10m Admin-1 v5.1.1（パブリックドメイン）から作っています。出所の説明は `data/SOURCES.md` と `LICENSE-DATA.md` にあります。
-- 形をやり直すときだけ `python3 scripts/build-map.py` を走らせます。県番号と令制国の対応がずれていないか、`npm run test:data` で確認してください。
+- `data/map.json` と `data/kuni-regions.json` は、みるラボの令制国ポリゴン（CC BY-SA 4.0。CODH / 本田謙一の幕末期近世村領域と農林水産省の農業集落境界が上流）を68国に統合して投影し、北海道・琉球の外形だけ Natural Earth 10m Admin-1 v5.1.1（パブリックドメイン）から足したものです。出所とクレジットは `data/SOURCES.md` と `LICENSE-DATA.md` にあります。派生した国の幾何は CC BY-SA 4.0 です。
+- 形をやり直すときだけ `python3 scripts/build-map.py` を走らせます。`kuni-regions.json` も同時に書き出します。68国のパスがあるか、`npm run test:data` で確認してください。
 - 北海道の幾何に北方四島は含まれません。東京の小笠原は意図的に外しています。
-- クリック判定と国名ラベルは `data/kuni-regions.json` です。現行の県境を令制国のおおよその範囲に分けたもので、歴史的国境ではありません。形をやり直すときは `python3 scripts/build-kuni-regions.py`。
+- 境界は典拠に基づく近似的な再構成であり、7世紀の国境そのものではありません。脚注の文言を「現行の都道府県境」に戻さないでください。
 - 画面上の短辺が 44px 未満の国は、まず所属の道に拡大し、まだ小さければ近傍（その国の囲みの3倍）へ、その次で選ぶ、という段階です。
 
 ## 一宮

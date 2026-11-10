@@ -20,17 +20,27 @@ https://creativecommons.org/publicdomain/zero/1.0/
 
 各令制国の一宮の社名と読みです。複数の名簿を照合した事実の一覧で、候補が複数ある国はすべて載せ「諸説」と記します。特定の一社を唯一の正解としてはいません。再録は CC0 1.0 とします。出典の詳細は `data/SOURCES.md` を見てください。
 
-## 現行都道府県の地図幾何（`data/map.json`）
+## 令制国の境界（`data/map.json` と `data/kuni-regions.json` の国の幾何）
+
+幕末期の村域データから復元した令制国の境界です。クリエイティブ・コモンズ 表示-継承 4.0 国際（CC BY-SA 4.0）です。利用時は出典を表示し、同じライセンスで再配布してください。
+
+https://creativecommons.org/licenses/by-sa/4.0/
+
+原典と加工の関係、クレジットの書き方は `data/SOURCES.md` を見てください。要約すると:
+
+- みるラボ 令制国ポリゴン（CC BY-SA 4.0）https://miru-lab.jp/contents/ryoseikoku-map
+- 『幕末期近世村領域データセット』（CODH作成）「幕末期近世村領域データ」（本田謙一）https://geoshape.ex.nii.ac.jp/av/ ／ https://github.com/yaoyue00085856/Kyudaka_agrivillage
+- 農業集落境界データ（2015年農林業センサス、農林水産省。出典を明示して利用可）
+
+境界は2015年の農業集落界による近似的な再構成であり、当時の正確な国境そのものではありません。このプロジェクトでは、原典の73カ国を伝統的な68国（陸奥・出羽を統合）へ再統合し、ランベルト正角円錐図法で投影しています。
+
+再生成する手順は `scripts/build-map.py` と `data/SOURCES.md` を見てください。
+
+## 北海道・琉球の外形（`data/map.json` の hokkaido / ryukyu）
 
 Natural Earth 10m Admin-1 States and Provinces, version 5.1.1 を簡略化し、この地図のキャンバスに投影したものです。Natural Earth のデータはパブリックドメインです。
 
 https://www.naturalearthdata.com/about/terms-of-use/
-
-再生成する手順は `scripts/build-map.py` と `data/SOURCES.md` を見てください。
-
-## 令制国のクリック範囲（`data/kuni-regions.json`）
-
-現行都道府県界を、令制国ごとのおおよその範囲に分けたものです。歴史的国境ではありません。幾何の出所は Natural Earth（パブリックドメイン）、分割はこのプロジェクトの作成で CC0 1.0 です。詳細は `data/SOURCES.md` を見てください。
 
 ## 書体
 

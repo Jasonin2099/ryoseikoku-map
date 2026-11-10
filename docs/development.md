@@ -18,12 +18,13 @@ python3 scripts/subset-font.py   # サブセットだけ作り直す
 
 テストはビルド済みの `dist/` を見ます。先に `npm run build` してから `npx playwright test` しても構いません。`npm test` はビルドを内包します。
 
-地図幾何を Natural Earth からやり直すときだけ:
+地図幾何をやり直すときだけ（pyshp と shapely が必要。仮想環境でも可）:
 
 ```bash
-# pyshp と shapely が必要（仮想環境でも可）
 python3 scripts/build-map.py
 ```
+
+原データは `.cache/` にキャッシュされます。出来上がった `map.json` の令制国幾何は CC BY-SA 4.0 です。
 
 ## 無視するファイル
 

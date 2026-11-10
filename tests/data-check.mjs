@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFile } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -48,19 +48,26 @@ for (const [k, v] of Object.entries(expectDist)) {
 }
 
 const paths = map.paths;
-if (Object.keys(paths).length !== 47) throw new Error('expected 47 prefecture paths');
-const fromMap = new Set();
-for (const info of Object.values(paths)) {
-  for (const id of info.provs || []) fromMap.add(id);
-}
+const pathIds = Object.keys(paths);
+if (pathIds.length !== 70) throw new Error('expected 70 paths (68 kuni + hokkaido + ryukyu), got ' + pathIds.length);
+if (!paths.hokkaido || !paths.ryukyu) throw new Error('map missing hokkaido or ryukyu');
+if (map.width !== 1100) throw new Error('unexpected map width ' + map.width);
 for (const id of ids) {
-  if (!fromMap.has(id)) throw new Error('province not on map: ' + id);
+  const info = paths[id];
+  if (!info) throw new Error('province not on map: ' + id);
+  if (!info.d || info.d.length < 8) throw new Error('empty path for ' + id);
+  if (info.kind && info.kind !== 'kuni') throw new Error(id + ' should be kind kuni');
+  if (info.dao && !provinces.dao[info.dao]) throw new Error(id + ' unknown dao ' + info.dao);
 }
-for (const id of fromMap) {
+for (const id of pathIds) {
+  if (id === 'hokkaido' || id === 'ryukyu') continue;
   if (!ids.has(id)) throw new Error('map id missing from provinces: ' + id);
 }
+if ((await stat(path.join(root, 'data/map.json'))).size > 600 * 1024) {
+  throw new Error('map.json is larger than 600KB');
+}
 
-console.log('data-check ok: 68 provinces, grade/distance/ichinomiya, map covers all ids');
+console.log('data-check ok: 68 provinces, grade/distance/ichinomiya, 70 map paths');
 
 const regions = JSON.parse(await readFile(path.join(root, 'data/kuni-regions.json'), 'utf8'));
 if (!regions.kuni) throw new Error('kuni-regions missing kuni');

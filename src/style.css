@@ -608,4 +608,7 @@ html[data-theme="light"] .kuni-label{--halo:#fff8ef;}
   body.has-sheet{padding-bottom:50vh;}
   body.has-sheet .hint,
   body.has-sheet .site-foot{visibility:hidden;}
+  /* Fill the visible band above the half/full drawer; JS sets the pixel height. */
+  body.has-sheet .map-wrap{overflow:hidden;}
+  body.has-sheet #mapSvg{aspect-ratio:auto;height:100%;width:100%;}
 }
