@@ -7,6 +7,9 @@ Okinawa is drawn in a right-hand inset (the app then scales that path 1.5×).
 Amami islands that Natural Earth attributes to Okinawa are moved back to
 Kagoshima. Tokyo's Ogasawara / Marcus islands are dropped so they don't
 explode the bounding box; the Izu chain is kept.
+Coordinates are projected with a Lambert conformal conic
+(central meridian 137°E, standard parallels 33°N / 44°N) so
+Honshu keeps familiar proportions instead of looking squashed.
 """
 from __future__ import annotations
 
@@ -163,54 +166,88 @@ def load_legacy():
     return old, provs, ja
 
 
-def main_bounds(prefs):
-    """Bounding box used to fit the main (non-inset) map.
+def lcc_setup(lon0=137.0, lat1=33.0, lat2=44.0, lat0=38.0, R=1.0):
+    """Lambert conformal conic; x east, y north, in the same units as R."""
+    phi0, phi1, phi2, lam0 = (math.radians(v) for v in (lat0, lat1, lat2, lon0))
 
-    Southern island tails (Yakushima, Amami, far Izu) are still drawn, but
-    they are left out of the *fit* so Hokkaido / Honshu stay at a readable size.
-    """
-    xs, ys = [], []
+    def t(phi):
+        return math.tan(math.pi / 4 + phi / 2)
+
+    n = math.log(math.cos(phi1) / math.cos(phi2)) / math.log(t(phi2) / t(phi1))
+    F = math.cos(phi1) * (t(phi1) ** n) / n
+    rho0 = R * F / (t(phi0) ** n)
+
+    def proj(lon, lat):
+        phi = math.radians(lat)
+        lam = math.radians(lon)
+        rho = R * F / (t(phi) ** n)
+        x = rho * math.sin(n * (lam - lam0))
+        y = rho0 - rho * math.cos(n * (lam - lam0))
+        return x, y
+
+    return proj
+
+
+PROJ = lcc_setup()
+# Local cone for the Ryukyu inset so the chain keeps its proportions.
+PROJ_OKI = lcc_setup(lon0=127.8, lat1=24.5, lat2=26.8, lat0=26.0)
+
+
+def main_parts(prefs):
+    """Prefecture parts used to fit the main map (no Okinawa, no far-south tails)."""
+    out = []
     for iso, info in prefs.items():
         if iso == "JP-47":
             continue
         for p in split_parts(info["geom"]):
-            c = p.centroid
-            if c.y < 30.8:  # Yakushima / Amami / Toshima tails
+            if p.centroid.y < 30.8:
                 continue
-            minx, miny, maxx, maxy = p.bounds
-            # clamp south for parts that straddle the cutoff
-            miny = max(miny, 30.8)
-            xs += [minx, maxx]
-            ys += [miny, maxy]
+            out.append(p)
+    return out
+
+
+def projected_bounds(geoms, proj):
+    xs, ys = [], []
+    for g in geoms:
+        pg = apply_xy(g, proj)
+        minx, miny, maxx, maxy = pg.bounds
+        xs += [minx, maxx]
+        ys += [miny, maxy]
     return min(xs), min(ys), max(xs), max(ys)
 
 
-def build(prefs, sx, sy, lon0, lat1, x0, y0, inset, old_provs, old_ja, lat_cut, y_cut, sy_south):
-    def proj(lon, lat):
-        if lat >= lat_cut:
-            y = y0 + (lat1 - lat) * sy
+def build(prefs, scale, x0, y0, minx, maxy, y_cut_proj, y_cut_canvas, scale_south,
+          inset, old_provs, old_ja, south_dx=0.0):
+    def proj_main(lon, lat):
+        X, Y = PROJ(lon, lat)
+        x = x0 + (X - minx) * scale
+        if Y >= y_cut_proj:
+            y = y0 + (maxy - Y) * scale
         else:
-            y = y_cut + (lat_cut - lat) * sy_south
-        return (x0 + (lon - lon0) * sx, y)
+            y = y_cut_canvas + (y_cut_proj - Y) * scale_south
+            x += south_dx
+        return (x, y)
 
     ix, iy, iw, ih = inset
     oki = prefs["JP-47"]["geom"]
-    ominx, ominy, omaxx, omaxy = oki.bounds
-    mx, my = 8.0, 10.0
-    # Fill the inset (independent X/Y) so the long Ryukyu chain stays readable.
-    osx = (iw - 2 * mx) / max(omaxx - ominx, 1e-6)
-    osy = (ih - 2 * my) / max(omaxy - ominy, 1e-6)
+    oki_p = apply_xy(oki, PROJ_OKI)
+    ominx, ominy, omaxx, omaxy = oki_p.bounds
+    mx, my = 10.0, 14.0
+    os = min(
+        (iw - 2 * mx) / max(omaxx - ominx, 1e-6),
+        (ih - 2 * my) / max(omaxy - ominy, 1e-6),
+    )
+    ox = ix + (iw - (omaxx - ominx) * os) / 2
+    oy = iy + (ih - (omaxy - ominy) * os) / 2
 
     def proj_oki(lon, lat):
-        return (
-            ix + mx + (lon - ominx) * osx,
-            iy + my + (omaxy - lat) * osy,
-        )
+        X, Y = PROJ_OKI(lon, lat)
+        return (ox + (X - ominx) * os, oy + (omaxy - Y) * os)
 
     paths = {}
     for iso, info in prefs.items():
         pid = str(int(iso.split("-")[1]))
-        geom = apply_xy(info["geom"], proj_oki if iso == "JP-47" else proj)
+        geom = apply_xy(info["geom"], proj_oki if iso == "JP-47" else proj_main)
         d = geom_to_path(geom)
         if not d:
             raise SystemExit("empty path for " + iso)
@@ -230,69 +267,74 @@ def build(prefs, sx, sy, lon0, lat1, x0, y0, inset, old_provs, old_ja, lat_cut, 
             "license": "public domain",
             "url": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-admin-1-states-provinces/",
             "terms": "https://www.naturalearthdata.com/about/terms-of-use/",
+            "projection": "Lambert conformal conic, lon0=137E, std parallels 33N/44N",
         },
         "paths": {str(i): paths[str(i)] for i in range(1, 48)},
     }
 
 
 def main():
+    global WIDTH, HEIGHT
     shp = download_zip(CACHE)
     prefs = reassign(load_japan(shp))
-    minx, miny, maxx, maxy = main_bounds(prefs)
-    print("fit lon/lat", minx, miny, maxx, maxy)
+    fit = main_parts(prefs)
+    minx, miny, maxx, maxy = projected_bounds(fit, PROJ)
+    print("fit projected", minx, miny, maxx, maxy)
 
-    # Mild horizontal stretch (~1.35) keeps a familiar wide canvas without
-    # flattening Hokkaido. Leave a right-hand bay for the Okinawa inset.
-    dlon, dlat = maxx - minx, maxy - miny
-    inset_w, inset_h = 250.0, 88.0
-    gap = 24.0
-    # Leave a band at the bottom for the compressed Satsunan tail.
-    SOUTH_RESERVE = 62.0
-    usable_h = HEIGHT - PAD - SOUTH_RESERVE
-    sy = usable_h / dlat
-    sx = sy * 1.35
-    drawn_w = dlon * sx
-    drawn_h = dlat * sy
-    max_w = WIDTH - PAD - inset_w - gap
-    if drawn_w > max_w:
-        k = max_w / drawn_w
-        sx *= k
-        sy *= k
-        drawn_w *= k
-        drawn_h *= k
+    WIDTH = 1100.0
+    inset_w, inset_h = 300.0, 155.0
+    gap = 20.0
+    SOUTH_RESERVE = 72.0
+    # After the app's 1.5× scale, the frame must stay inside the viewBox:
+    # scaled right edge = ix + 1.25*inset_w <= WIDTH - PAD
+    ix = WIDTH - PAD - inset_w * 1.25
+    # Fit the main islands to a ~760px column so the canvas stays around
+    # 1100×900. The inset may sit farther left in the lower-right ocean
+    # (it does not overlap Hokkaido in Y).
+    usable_w = WIDTH - PAD - 230.0 * 1.25 - gap - PAD
+    scale = usable_w / (maxx - minx)
+    drawn_h = (maxy - miny) * scale
+    HEIGHT = PAD + drawn_h + SOUTH_RESERVE
+    # Round to a stable canvas size
+    HEIGHT = float(int(round(HEIGHT)))
     x0 = PAD
     y0 = PAD
-    lon0, lat1 = minx, maxy
-    lat_cut = miny  # south edge of the fit box (~30.8N)
-    y_cut = y0 + (lat1 - lat_cut) * sy
-    lat_south = 27.05  # Amami / Yoron
+    y_cut_proj = miny
+    y_cut_canvas = y0 + (maxy - y_cut_proj) * scale
+    # Southern reference: Amami / Yoron (~27.05N, west Kyushu longitude)
+    _, y_south_proj = PROJ(129.0, 27.05)
     y_bottom = HEIGHT - 8.0
-    sy_south = (y_bottom - y_cut) / (lat_cut - lat_south)
-    print("south compress y_cut", round(y_cut,1), "sy_south", round(sy_south,2))
-
-    # After the app's 1.5× scale, the frame must stay inside the viewBox:
-    # ix + 1.25*inset_w + PAD <= WIDTH
-    ix = WIDTH - PAD - inset_w * 1.25
-    iy = 258.0
+    scale_south = (y_bottom - y_cut_canvas) / max(y_cut_proj - y_south_proj, 1e-6)
+    # Place the inset in the lower-right bay, above the south reserve
+    iy = min(y_cut_canvas - inset_h - 8.0, HEIGHT - PAD - inset_h * 1.25)
+    iy = max(PAD + 40.0, iy)
     inset = (ix, iy, inset_w, inset_h)
-    print("scale sx,sy", sx, sy, "origin", x0, y0, "inset", inset)
+    # Keep south-band islands (Amami etc.) from running off the left edge.
+    # Sample the west of the south box at a few longitudes.
+    south_xs = [PROJ(lon, 27.4)[0] for lon in (128.0, 128.6, 129.0, 129.5, 130.0)]
+    south_x_min = x0 + (min(south_xs) - minx) * scale
+    south_dx = max(0.0, PAD - south_x_min)
+    print("canvas", WIDTH, HEIGHT, "scale", scale, "origin", x0, y0)
+    print("south y_cut", round(y_cut_canvas, 1), "scale_south", round(scale_south, 2),
+          "south_dx", round(south_dx, 1), "inset", inset)
 
     _, old_provs, old_ja = load_legacy()
 
     best = None
     for tol in (0.003, 0.004, 0.005, 0.006, 0.008, 0.01, 0.012):
         simp = simplify_all(prefs, tol)
-        data = build(simp, sx, sy, lon0, lat1, x0, y0, inset, old_provs, old_ja, lat_cut, y_cut, sy_south)
+        data = build(
+            simp, scale, x0, y0, minx, maxy, y_cut_proj, y_cut_canvas, scale_south,
+            inset, old_provs, old_ja, south_dx,
+        )
         size = len(json.dumps(data, ensure_ascii=False, separators=(",", ":")))
         print("  tol", tol, "bytes", size)
         score = abs(size - 73_000)
         if best is None or score < best[0]:
             best = (score, tol, data, size)
-        if 60_000 <= size <= 90_000:
-            # prefer first that lands in the window (less simplified = better)
-            if size <= 85_000:
-                best = (score, tol, data, size)
-                break
+        if 60_000 <= size <= 90_000 and size <= 85_000:
+            best = (score, tol, data, size)
+            break
 
     tol, data, size = best[1], best[2], best[3]
     print("chosen tol", tol, "size", size)

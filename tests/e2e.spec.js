@@ -70,9 +70,33 @@ test('color-scheme light still renders the map', async ({ page }, testInfo) => {
   await page.emulateMedia({ colorScheme: 'light' });
   const res = await page.goto('/');
   expect(res.status()).toBe(200);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await expect(page.locator('#mapSvg path.region')).toHaveCount(47);
   await page.screenshot({
     path: path.join(shotDir, `${testInfo.project.name}-light.png`),
+    fullPage: true,
+  });
+});
+
+test('theme toggle switches and persists', async ({ page }) => {
+  await page.goto('/');
+  const initial = await page.locator('html').getAttribute('data-theme');
+  expect(initial === 'light' || initial === 'dark').toBeTruthy();
+  await page.locator('#themeToggle').click();
+  const next = initial === 'dark' ? 'light' : 'dark';
+  await expect(page.locator('html')).toHaveAttribute('data-theme', next);
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', next);
+});
+
+test('color-scheme dark still renders the map', async ({ page }, testInfo) => {
+  await page.emulateMedia({ colorScheme: 'dark' });
+  const res = await page.goto('/');
+  expect(res.status()).toBe(200);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(page.locator('#mapSvg path.region')).toHaveCount(47);
+  await page.screenshot({
+    path: path.join(shotDir, `${testInfo.project.name}-dark.png`),
     fullPage: true,
   });
 });

@@ -20,6 +20,8 @@
           all:'すべて', hint:'地域をタップして旧国名を見る', fail:'地図データの読み込みに失敗しました。再読み込みしてください',
           close:'閉じる', filter:'道で絞り込む', mapLabel:'日本の令制国地図', drawer:'令制国の詳細', origin:'由来', ref:'歴史・文学',
           outside:'令制国の外', share:'この国をシェア', copied:'リンクをコピーしました', toggle:'中文', toggleLabel:'中文に切り替え',
+          themeToDark:'ダーク', themeToDarkLabel:'ダークモードに切り替え',
+          themeToLight:'ライト', themeToLightLabel:'ライトモードに切り替え',
           title:'令制国 · あなたの地元、昔は何国？',
           pending:'（日本語訳は準備中です。中国語の原文を表示しています）',
           hokkaido:'明治以前の北海道は<b>蝦夷地</b>と呼ばれ、律令の「五畿七道」の外にあったため、令制国は置かれていません。1869年（明治2年）に北海道と改称され、五畿七道は「五畿八道」となりました。',
@@ -34,6 +36,8 @@
           all:'全部', hint:'轻触任一区域 · 查看旧国名', fail:'地图数据加载失败，请刷新重试',
           close:'关闭', filter:'按道筛选', mapLabel:'日本令制国地图', drawer:'令制国详情', origin:'由来', ref:'史 · 文',
           outside:'令制国外', share:'分享这个国', copied:'链接已复制', toggle:'日本語', toggleLabel:'切换到日语',
+          themeToDark:'深色', themeToDarkLabel:'切换到深色模式',
+          themeToLight:'浅色', themeToLightLabel:'切换到浅色模式',
           title:'令制国 · 五畿七道交互地图', pending:'',
           hokkaido:'北海道在明治以前称<b>蝦夷地</b>，是律令「五畿七道」体系之外的化外之地，并无令制国。1869年戊辰战争后改置北海道，五畿七道遂称「五畿八道」。',
           okinawa:'冲绳在明治以前为独立的<b>琉球王国</b>，不属日本令制国体系。1872年设琉球藩，1879年「琉球处分」后置冲绳县。',
@@ -46,6 +50,15 @@
   };
   var lang = 'ja';
   try { var sv = localStorage.getItem('kuni-lang'); if (sv === 'zh' || sv === 'ja') lang = sv; } catch(e){}
+  function readTheme(){
+    var stored = null;
+    try { stored = localStorage.getItem('kuni-theme'); } catch(e){}
+    if (stored === 'light' || stored === 'dark') return stored;
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
+    return 'light';
+  }
+  var theme = document.documentElement.getAttribute('data-theme');
+  if (theme !== 'light' && theme !== 'dark') theme = readTheme();
   function T(k){ return STR[lang][k]; }
   function fld(p, k){ var v = p[k + '_ja']; return (lang === 'ja' && v) ? v : p[k]; }
 
@@ -86,12 +99,19 @@
       renderSearch();
       if (selectedPref && regionEls[selectedPref]) renderDrawer(regionEls[selectedPref]);
     });
+    var th = document.getElementById('themeToggle');
+    if (th) th.addEventListener('click', function(){
+      theme = (theme === 'dark') ? 'light' : 'dark';
+      try { localStorage.setItem('kuni-theme', theme); } catch(e){}
+      applyTheme();
+    });
     bindSearch();
     applyLang();
+    applyTheme();
 
     Promise.all([
-      fetch('map.json?v=k3').then(function(r){ return r.json(); }),
-      fetch('provinces.json?v=k3').then(function(r){ return r.json(); })
+      fetch('map.json?v=k4').then(function(r){ return r.json(); }),
+      fetch('provinces.json?v=k4').then(function(r){ return r.json(); })
     ]).then(function(res){
       mapData  = res[0];
       provData = res[1];
@@ -126,11 +146,24 @@
     if (elSvg) elSvg.setAttribute('aria-label', T('mapLabel'));
     if (elDrawer) elDrawer.setAttribute('aria-label', T('drawer'));
     var tg = q('langToggle'); if (tg){ tg.textContent = T('toggle'); tg.setAttribute('aria-label', T('toggleLabel')); }
+    applyTheme();
     if (elSearch){ elSearch.setAttribute('placeholder', T('search')); }
     var sl = q('searchLabel'); if (sl) sl.textContent = T('search');
     if (elSearchClear) elSearchClear.setAttribute('aria-label', T('searchClear'));
     if (q('footNote')) q('footNote').textContent = T('footNote');
     if (q('footFont')) q('footFont').textContent = T('footFont');
+  }
+
+  function applyTheme(){
+    document.documentElement.setAttribute('data-theme', theme);
+    var meta = document.getElementById('themeColor') || document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', theme === 'dark' ? '#1c1611' : '#e8dcc8');
+    var th = document.getElementById('themeToggle');
+    if (th){
+      var toLight = theme === 'dark';
+      th.textContent = T(toLight ? 'themeToLight' : 'themeToDark');
+      th.setAttribute('aria-label', T(toLight ? 'themeToLightLabel' : 'themeToDarkLabel'));
+    }
   }
 
   function prefOfProv(pid){

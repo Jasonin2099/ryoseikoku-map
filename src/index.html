@@ -2,6 +2,16 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<script>
+(function(){
+  var k='kuni-theme', t=null;
+  try{ t=localStorage.getItem(k); }catch(e){}
+  if(t!=='light' && t!=='dark'){
+    t=(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  }
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes, viewport-fit=cover">
 <title>令制国 · あなたの地元、昔は何国？</title>
 <meta name="description" content="日本地図をタップすると、今の都道府県が令制国の旧国名に戻ります。読み方・五畿七道・延喜式の等級と距離・国府の郡名・地名の由来まで。">
@@ -24,12 +34,22 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="icon" href="icon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<meta name="theme-color" content="#8f5f3a">
+<meta name="theme-color" content="#e8dcc8" id="themeColor">
+<script>
+(function(){
+  var t=document.documentElement.getAttribute('data-theme');
+  var m=document.getElementById('themeColor');
+  if(m) m.setAttribute('content', t==='dark' ? '#1c1611' : '#e8dcc8');
+})();
+</script>
 </head>
 <body>
 
 <header class="page-head">
-  <button class="lang-toggle" id="langToggle" type="button" aria-label="中文に切り替え">中文</button>
+  <div class="head-toggles">
+    <button class="bar-toggle" id="langToggle" type="button" aria-label="中文に切り替え">中文</button>
+    <button class="bar-toggle" id="themeToggle" type="button" aria-label="ダークモードに切り替え">ダーク</button>
+  </div>
   <div class="head-inner">
     <p class="eyebrow">五畿七道 · GOKI&nbsp;SHICHIDŌ</p>
     <h1 class="title">令制国</h1>

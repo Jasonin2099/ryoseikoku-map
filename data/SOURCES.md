@@ -15,13 +15,15 @@
 
 ## map.json
 
-現行の都道府県を、横長の簡略図にしたものです。パスは県単位で、令制国の歴史的国境ではありません。幅 1100、高さ 480。沖縄は図の右の別枠に置いています。
+現行の都道府県を簡略図にしたものです。パスは県単位で、令制国の歴史的国境ではありません。ランベルト正角円錐図法（中央経線 137°E、標準緯線 33°N / 44°N）で投影し、沖縄は図の右の別枠に置いています。
 
 出所は Natural Earth 10m Admin-1 States and Provinces, version 5.1.1 です。パブリックドメインです。
 
 - 配布: https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-admin-1-states-provinces/
 - 利用条件: https://www.naturalearthdata.com/about/terms-of-use/
 - 再生成: `scripts/build-map.py`（`.cache/natural-earth/` に shapefile をキャッシュします）
+
+投影は `scripts/build-map.py` のランベルト正角円錐図法です。以前の正距円筒図法（経度方向をさらに横に伸ばしていた）では列島が潰れて見えたため、差し替えました。キャンバス寸法は投影結果の縦横比に合わせています。
 
 処理の要点:
 

@@ -51,8 +51,8 @@ await writeFile(path.join(dist, 'style.min.css'), cssMin.styles);
 
 let html = await readFile(path.join(root, 'src/index.html'), 'utf8');
 html = html
-  .replace('href="style.css"', 'href="style.min.css?v=k3"')
-  .replace('src="app.js"', 'src="app.min.js?v=k3"');
+  .replace('href="style.css"', 'href="style.min.css?v=k4"')
+  .replace('src="app.js"', 'src="app.min.js?v=k4"');
 
 if (site) {
   const canon = site.canonical ? site.canonical.replace(/\/?$/, '/') : '';
