@@ -101,7 +101,18 @@ test('color-scheme dark still renders the map', async ({ page }, testInfo) => {
   });
 });
 
-const SHOTS = '/workspace/kuni-shots';
+function zoomShotDir() {
+  const preferred = '/workspace/kuni-shots';
+  const fallback = path.join(__dirname, '..', 'test-results', 'zoom-shots');
+  try {
+    fs.mkdirSync(preferred, { recursive: true });
+    fs.accessSync(preferred, fs.constants.W_OK);
+    return preferred;
+  } catch (e) {
+    fs.mkdirSync(fallback, { recursive: true });
+    return fallback;
+  }
+}
 
 async function ready(page) {
   await page.goto('/');
@@ -303,8 +314,7 @@ test('labels appear when a country is wide enough', async ({ page }) => {
 
 test('screenshots: light full, kinai two-step, sanyodo, labels, dark', async ({ page }, testInfo) => {
   test.setTimeout(90000);
-  const fs = require('fs');
-  fs.mkdirSync(SHOTS, { recursive: true });
+  const SHOTS = zoomShotDir();
   const vp = testInfo.project.name === 'mobile' ? 'mobile-390x844' : 'desktop-1280x800';
   if (testInfo.project.name !== 'mobile') {
     await page.setViewportSize({ width: 1280, height: 800 });
