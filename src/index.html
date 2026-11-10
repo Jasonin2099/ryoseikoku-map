@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes, viewport-fit=cover">
+<title>令制国 · あなたの地元、昔は何国？</title>
+<meta name="description" content="日本地図をタップすると、今の都道府県が令制国の旧国名に戻ります。読み方・五畿七道・延喜式の等級と距離・国府の郡名・地名の由来まで。">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="令制国マップ">
+<meta property="og:title" content="あなたの地元、昔は何国？｜令制国インタラクティブ地図">
+<meta property="og:description" content="地図をタップすると、今の都道府県が千年前の国名に。五畿七道・六十八国の由来と歴史。">
+<meta property="og:image" content="og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="五畿七道で色分けした日本の令制国地図">
+<meta property="og:locale" content="ja_JP">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="あなたの地元、昔は何国？｜令制国インタラクティブ地図">
+<meta name="twitter:description" content="地図をタップすると、今の都道府県が千年前の国名に。五畿七道・六十八国の由来と歴史。">
+<meta name="twitter:image" content="og.png">
+<link rel="preload" href="jinghua-sub.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="icon" href="icon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#8f5f3a">
+</head>
+<body>
+
+<header class="page-head">
+  <button class="lang-toggle" id="langToggle" type="button" aria-label="中文に切り替え">中文</button>
+  <div class="head-inner">
+    <p class="eyebrow">五畿七道 · GOKI&nbsp;SHICHIDŌ</p>
+    <h1 class="title">令制国</h1>
+    <p class="lede" id="lede">地図をタップすると、今の都道府県が千年前の国名に戻ります。<br>陸奥から薩摩まで、六十八国。それぞれに由来があります。</p>
+  </div>
+</header>
+
+<nav class="dao-filter" id="daoFilter" aria-label="道で絞り込む">
+  <button class="dao-chip is-active" data-dao="all" type="button">すべて</button>
+</nav>
+
+<div class="search-wrap">
+  <label class="visually-hidden" for="searchInput" id="searchLabel">国名・読み・県名で探す</label>
+  <input class="search-input" id="searchInput" type="search" autocomplete="off" enterkeyhint="search">
+  <button class="search-clear" id="searchClear" type="button" hidden aria-label="検索を消す">×</button>
+  <ul class="search-results" id="searchResults" hidden></ul>
+</div>
+
+<main class="stage" id="stage">
+  <div class="map-wrap" id="mapWrap">
+    <svg id="mapSvg" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="日本の令制国地図">
+      <g id="mapLayer"></g>
+    </svg>
+    <div class="tip" id="tip" aria-hidden="true">
+      <span class="tip-kanji" id="tipKanji"></span>
+      <span class="tip-kana" id="tipKana"></span>
+    </div>
+  </div>
+  <p class="hint" id="hint">地域をタップして旧国名を見る</p>
+</main>
+
+<footer class="site-foot">
+  <p id="footNote"></p>
+  <p id="footFont"></p>
+</footer>
+
+<aside class="drawer" id="drawer" aria-hidden="true" aria-label="令制国の詳細">
+  <div class="drawer-inner" id="drawerInner">
+    <button class="drawer-close" id="drawerClose" type="button" aria-label="閉じる">×</button>
+    <div class="drawer-body" id="drawerBody" aria-live="polite"></div>
+  </div>
+</aside>
+<div class="scrim" id="scrim" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>

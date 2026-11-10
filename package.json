@@ -1,0 +1,21 @@
+{
+  "name": "ryoseikoku-map",
+  "version": "1.2.0",
+  "private": true,
+  "description": "Interactive map of Japan's historical provinces (ryōseikoku)",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "serve": "node scripts/serve.mjs",
+    "test:data": "node tests/data-check.mjs",
+    "test:e2e": "npx playwright test",
+    "test": "node tests/data-check.mjs && node scripts/build.mjs && npx playwright test",
+    "og": "python3 scripts/og.py",
+    "font": "python3 scripts/subset-font.py",
+    "map": "python3 scripts/build-map.py"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "clean-css": "^5.3.3",
+    "terser": "^5.36.0"
+  }
+}
