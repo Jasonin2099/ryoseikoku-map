@@ -46,7 +46,7 @@
           pending:'（日本語訳は準備中です。中国語の原文を表示しています）',
           hokkaido:'明治以前の北海道は<b>蝦夷地</b>と呼ばれ、律令の「五畿七道」の外にあったため、令制国は置かれていません。1869年（明治2年）に北海道と改称され、五畿七道は「五畿八道」となりました。',
           okinawa:'明治以前の沖縄は独立した<b>琉球王国</b>で、令制国の体系には含まれません。1872年に琉球藩が置かれ、1879年の「琉球処分」で沖縄県となりました。',
-          search:'国名・読み・県名・一宮で探す', searchClear:'検索を消す', searchEmpty:'見つかりませんでした',
+          search:'国名・読み・県名・一宮・道名で探す', searchClear:'検索を消す', searchEmpty:'見つかりませんでした',
           grade:'等級', distance:'距離', kokufu:'国府', ichinomiya:'一宮', disputed:'諸説あり', none:'記載なし',
           prefLabel:'現在の都府県', nation:'全国', nationAria:'全国を表示', crumbAria:'表示範囲',
           hokkaidoName:'北海道', ryukyuName:'琉球',
@@ -64,7 +64,7 @@
           title:'令制国 · 五畿七道交互地图', pending:'',
           hokkaido:'北海道在明治以前称<b>蝦夷地</b>，是律令「五畿七道」体系之外的化外之地，并无令制国。1869年戊辰战争后改置北海道，五畿七道遂称「五畿八道」。',
           okinawa:'冲绳在明治以前为独立的<b>琉球王国</b>，不属日本令制国体系。1872年设琉球藩，1879年「琉球处分」后置冲绳县。',
-          search:'按国名、读音、县名、一宫搜索', searchClear:'清除搜索', searchEmpty:'没有找到',
+          search:'按国名、读音、县名、一宫、道名搜索', searchClear:'清除搜索', searchEmpty:'没有找到',
           grade:'等级', distance:'距离', kokufu:'国府', ichinomiya:'一宫', disputed:'诸说', none:'无记载',
           prefLabel:'现在的都府县', nation:'全国', nationAria:'返回全国', crumbAria:'当前范围',
           hokkaidoName:'北海道', ryukyuName:'琉球',
@@ -318,9 +318,25 @@
     }
   }
 
+  /* Fold CJK variants that show up in kuni / dao names, so a simplified
+     or traditional query still hits the Japanese shinjitai form in the data.
+     Display names are left untouched. */
+  var CJK_FOLD = {
+    '东':'東','阳':'陽','阴':'陰','陆':'陸','总':'総','备':'備',
+    '艺':'芸','藝':'芸','丰':'豊','豐':'豊','对':'対','對':'対',
+    '岛':'島','后':'後','预':'予','預':'予','贺':'賀','萨':'薩',
+    '隐':'隠','隱':'隠','壹':'壱','骏':'駿','远':'遠','摄':'摂',
+    '张':'張','藏':'蔵','纪':'紀','赞':'讃','讚':'讃','國':'国',
+    '奧':'奥','见':'見','云':'雲','绳':'縄','冲':'沖'
+  };
+
+  var searchActive = -1;
+  var SEARCH_CAP = 16;
+
   function normalize(s){
     return String(s || '').toLowerCase()
       .replace(/[ぁ-ん]/g, function(ch){ return String.fromCharCode(ch.charCodeAt(0) + 0x60); })
+      .replace(/./g, function(ch){ return CJK_FOLD[ch] || ch; })
       .replace(/[āáàâ]/g,'a').replace(/[īíìî]/g,'i').replace(/[ūúùû]/g,'u')
       .replace(/[ēéèê]/g,'e').replace(/[ōóòô]/g,'o')
       .replace(/　/g,' ').trim();
@@ -330,7 +346,8 @@
     var g = gradeMeta[p.grade] || {};
     var d = distMeta[p.distance] || {};
     var kf = p.kokufu || {};
-    var parts = [p.ja, p.kana, p.romaji, p.id]
+    var dao = daoMeta[p.dao] || {};
+    var parts = [p.ja, p.kana, p.romaji, p.id, p.dao, dao.ja, dao.kana]
       .concat(p.pref || [])
       .concat([g.ja, g.zh, g.kana, d.ja, d.zh, d.kana, kf.gun, kf.wamyo, kf.jikaisho, kf.iroha]);
     var i, s, ichi = p.ichinomiya || [];
@@ -346,6 +363,23 @@
   function matchesQuery(p, q){
     if (!q) return true;
     return haystack(p).indexOf(q) >= 0;
+  }
+
+  function outsideNames(id){
+    if (id === 'hokkaido'){
+      return ['北海道', 'ほっかいどう', 'hokkaido', '蝦夷地', 'えぞち', 'えぞ', 'ezo', 'ezochi'];
+    }
+    return ['琉球', 'りゅうきゅう', 'ryukyu', '沖縄', 'おきなわ', 'okinawa', '冲绳', '琉球王国'];
+  }
+
+  function outsideHaystack(id){
+    return normalize(outsideNames(id).join(' '));
+  }
+
+  function outsideMatches(id){
+    if (activeDao !== 'all') return false;
+    if (!searchQuery) return true;
+    return outsideHaystack(id).indexOf(searchQuery) >= 0;
   }
 
   function kuniMatches(id){
@@ -379,14 +413,47 @@
     }
     for (key in outsideEls){
       if (!outsideEls.hasOwnProperty(key)) continue;
-      outsideEls[key].classList.toggle('is-match', !filtering);
+      outsideEls[key].classList.toggle('is-match', !filtering || outsideMatches(key));
     }
     updateLabels();
+  }
+
+  function searchButtons(){
+    if (!elSearchResults) return [];
+    return elSearchResults.querySelectorAll('button[data-id]');
+  }
+
+  function setSearchActive(i){
+    var buttons = searchButtons();
+    var j, btn;
+    if (!buttons.length){
+      searchActive = -1;
+      if (elSearch) elSearch.removeAttribute('aria-activedescendant');
+      return;
+    }
+    if (i < 0) i = buttons.length - 1;
+    if (i >= buttons.length) i = 0;
+    searchActive = i;
+    for (j = 0; j < buttons.length; j++){
+      btn = buttons[j];
+      btn.classList.toggle('is-active', j === i);
+      btn.setAttribute('aria-selected', j === i ? 'true' : 'false');
+    }
+    if (elSearch) elSearch.setAttribute('aria-activedescendant', buttons[i].id);
+    if (buttons[i].scrollIntoView) buttons[i].scrollIntoView({ block:'nearest' });
+  }
+
+  function setSearchExpanded(open){
+    if (elSearch) elSearch.setAttribute('aria-expanded', open ? 'true' : 'false');
   }
 
   function bindSearch(){
     if (!elSearch) return;
     var timer = null;
+    elSearch.setAttribute('role', 'combobox');
+    elSearch.setAttribute('aria-autocomplete', 'list');
+    elSearch.setAttribute('aria-controls', 'searchResults');
+    setSearchExpanded(false);
     function onChange(){
       searchQuery = normalize(elSearch.value);
       if (elSearchClear) elSearchClear.hidden = !elSearch.value;
@@ -399,10 +466,18 @@
     });
     elSearch.addEventListener('keydown', function(e){
       if (e.key === 'Escape'){ e.preventDefault(); clearSearch(); return; }
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+        if (!elSearchResults || elSearchResults.hidden || !searchButtons().length) return;
+        e.preventDefault();
+        if (searchActive < 0) setSearchActive(0);
+        else setSearchActive(searchActive + (e.key === 'ArrowDown' ? 1 : -1));
+        return;
+      }
       if (e.key === 'Enter'){
         e.preventDefault();
-        var first = elSearchResults && elSearchResults.querySelector('[data-id]');
-        if (first) openProv(first.getAttribute('data-id'));
+        var buttons = searchButtons();
+        var target = (searchActive >= 0 && buttons[searchActive]) ? buttons[searchActive] : buttons[0];
+        if (target) openSearchHit(target.getAttribute('data-kind') || 'kuni', target.getAttribute('data-id'));
       }
     });
     if (elSearchClear) elSearchClear.addEventListener('click', clearSearch);
@@ -410,47 +485,81 @@
       if (!elSearchResults || elSearchResults.hidden) return;
       if (elSearchResults.contains(e.target) || (elSearch && elSearch.contains(e.target))) return;
       elSearchResults.hidden = true;
+      setSearchExpanded(false);
     });
   }
 
   function clearSearch(){
     if (elSearch) elSearch.value = '';
     searchQuery = '';
+    searchActive = -1;
+    if (elSearch) elSearch.removeAttribute('aria-activedescendant');
     if (elSearchClear) elSearchClear.hidden = true;
-    if (elSearchResults) elSearchResults.hidden = true;
+    if (elSearchResults){ elSearchResults.hidden = true; elSearchResults.innerHTML = ''; }
+    setSearchExpanded(false);
     applyFilter();
   }
 
   function renderSearch(){
     if (!elSearchResults) return;
-    if (!searchQuery){ elSearchResults.hidden = true; elSearchResults.innerHTML = ''; return; }
-    var hits = [], i, p;
-    for (i = 0; i < provData.provinces.length; i++){
-      p = provData.provinces[i];
-      if (activeDao !== 'all' && p.dao !== activeDao) continue;
-      if (matchesQuery(p, searchQuery)) hits.push(p);
+    searchActive = -1;
+    if (elSearch) elSearch.removeAttribute('aria-activedescendant');
+    if (!searchQuery){ elSearchResults.hidden = true; elSearchResults.innerHTML = ''; setSearchExpanded(false); return; }
+    var hits = [], i, p, id, html, meta, outs;
+    if (provData && provData.provinces){
+      for (i = 0; i < provData.provinces.length; i++){
+        p = provData.provinces[i];
+        if (activeDao !== 'all' && p.dao !== activeDao) continue;
+        if (matchesQuery(p, searchQuery)) hits.push({ kind:'kuni', p:p });
+      }
+    }
+    if (activeDao === 'all'){
+      outs = ['hokkaido', 'ryukyu'];
+      for (i = 0; i < outs.length; i++){
+        id = outs[i];
+        if (outsideHaystack(id).indexOf(searchQuery) >= 0){
+          hits.unshift({ kind:'outside', id:id });
+        }
+      }
     }
     if (!hits.length){
       elSearchResults.innerHTML = '<li class="search-empty">' + esc(T('searchEmpty')) + '</li>';
       elSearchResults.hidden = false;
+      setSearchExpanded(true);
       return;
     }
-    var html = '';
-    for (i = 0; i < Math.min(hits.length, 10); i++){
-      p = hits[i];
-      html += '<li><button type="button" data-id="' + esc(p.id) + '">' +
+    html = '';
+    for (i = 0; i < Math.min(hits.length, SEARCH_CAP); i++){
+      if (hits[i].kind === 'outside'){
+        id = hits[i].id;
+        html += '<li><button type="button" role="option" id="sr-' + esc(id) + '" data-kind="outside" data-id="' + esc(id) + '" aria-selected="false">' +
+          '<span>' + esc(id === 'hokkaido' ? T('hokkaidoName') : T('ryukyuName')) + '</span>' +
+          '<span class="sr-kana">' + esc(id === 'hokkaido' ? 'ほっかいどう' : 'りゅうきゅう') + '</span>' +
+          '<span class="sr-meta">' + esc(T('outside')) + '</span>' +
+          '</button></li>';
+        continue;
+      }
+      p = hits[i].p;
+      meta = (labelOf(gradeMeta[p.grade]) + ' · ' + labelOf(distMeta[p.distance])).replace(/^ · | · $/g, '');
+      html += '<li><button type="button" role="option" id="sr-' + esc(p.id) + '" data-kind="kuni" data-id="' + esc(p.id) + '" aria-selected="false">' +
         '<span>' + esc(p.ja) + '</span>' +
         '<span class="sr-kana">' + esc(p.kana) + '</span>' +
-        '<span class="sr-meta">' + esc(labelOf(gradeMeta[p.grade])) + ' · ' + esc(labelOf(distMeta[p.distance])) + '</span>' +
+        '<span class="sr-meta">' + esc(meta) + '</span>' +
         '</button></li>';
     }
     elSearchResults.innerHTML = html;
     elSearchResults.hidden = false;
+    setSearchExpanded(true);
+  }
+
+  function openSearchHit(kind, id){
+    if (elSearchResults) elSearchResults.hidden = true;
+    setSearchExpanded(false);
+    selectTarget(kind === 'outside' ? 'outside' : 'kuni', id, { fromSearch:true });
   }
 
   function openProv(pid){
-    if (elSearchResults) elSearchResults.hidden = true;
-    selectTarget('kuni', pid, { fromSearch:true });
+    openSearchHit('kuni', pid);
   }
 
   function labelOf(meta){
@@ -1680,7 +1789,7 @@
     if (elSearchResults){
       elSearchResults.addEventListener('click', function(e){
         var b = e.target.closest ? e.target.closest('[data-id]') : null;
-        if (b) openProv(b.getAttribute('data-id'));
+        if (b) openSearchHit(b.getAttribute('data-kind') || 'kuni', b.getAttribute('data-id'));
       });
     }
     if (elCrumb) elCrumb.addEventListener('click', onCrumbClick);

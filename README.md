@@ -45,3 +45,5 @@ npm run build -- --site /path/to/site.json
 - プログラム（HTML / CSS / JS とビルド用スクリプト）: MIT（`LICENSE`）
 - データ: 出所により異なります（`LICENSE-DATA.md` と `data/SOURCES.md`）
 - 書体: 特里王の声明に従います（`FONT-NOTICE.md`）。MIT でも OFL でもありません
+
+小さな積み残しは [ROADMAP.md](ROADMAP.md) にあります。

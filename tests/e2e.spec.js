@@ -50,6 +50,38 @@ test('search finds a kuni by ichinomiya shrine name', async ({ page }) => {
   await expect(page.locator('#pc-hitachi')).toContainText('鹿島神宮');
 });
 
+test('search finds provinces by dao name, including simplified characters', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#searchInput').fill('山陽道');
+  await expect(page.locator('#searchResults button[data-id="harima"]')).toBeVisible();
+  await expect(page.locator('#searchResults button[data-id="aki"]')).toBeVisible();
+  await page.locator('#searchInput').fill('');
+  await page.locator('#searchInput').fill('山阳道');
+  await expect(page.locator('#searchResults button[data-id="harima"]')).toBeVisible();
+  await expect(page.locator('#searchResults button[data-id="nagato"]')).toBeVisible();
+});
+
+test('search finds Hokkaido and opens the outside drawer', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#searchInput').fill('蝦夷地');
+  await expect(page.locator('#searchResults button[data-id="hokkaido"]')).toBeVisible();
+  await page.locator('#searchResults button[data-id="hokkaido"]').click();
+  await expect(page.locator('#drawer')).toHaveClass(/open/);
+  await expect(page.locator('#drawerBody')).toContainText('蝦夷地');
+});
+
+test('search keyboard moves the highlight and Enter opens it', async ({ page }) => {
+  await page.goto('/');
+  const input = page.locator('#searchInput');
+  await input.fill('やましろ');
+  await expect(page.locator('#searchResults button[data-id="yamashiro"]')).toBeVisible();
+  await input.press('ArrowDown');
+  await expect(page.locator('#searchResults button[data-id="yamashiro"]')).toHaveClass(/is-active/);
+  await input.press('Enter');
+  await expect(page.locator('#drawer')).toHaveClass(/open/);
+  await expect(page.locator('#pc-yamashiro .pc-kanji')).toContainText('山城');
+});
+
 test('dao filter dims other regions', async ({ page }) => {
   await page.goto('/');
   await page.locator('.dao-chip[data-dao="kinai"]').click();

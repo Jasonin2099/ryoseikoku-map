@@ -73,10 +73,10 @@
 </nav>
 
 <div class="search-wrap">
-  <label class="visually-hidden" for="searchInput" id="searchLabel">国名・読み・県名で探す</label>
-  <input class="search-input" id="searchInput" type="search" autocomplete="off" enterkeyhint="search">
+  <label class="visually-hidden" for="searchInput" id="searchLabel">国名・読み・県名・一宮・道名で探す</label>
+  <input class="search-input" id="searchInput" type="search" autocomplete="off" enterkeyhint="search" role="combobox" aria-autocomplete="list" aria-controls="searchResults" aria-expanded="false">
   <button class="search-clear" id="searchClear" type="button" hidden aria-label="検索を消す">×</button>
-  <ul class="search-results" id="searchResults" hidden></ul>
+  <ul class="search-results" id="searchResults" hidden role="listbox"></ul>
 </div>
 
 <div class="workspace" id="workspace">
