@@ -6,9 +6,9 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "serve": "node scripts/serve.mjs",
-    "test:data": "node tests/data-check.mjs",
+    "test:data": "node tests/data-check.mjs && node tests/i18n-check.mjs && node tests/search-check.mjs",
     "test:e2e": "npx playwright test",
-    "test": "node tests/data-check.mjs && node scripts/build.mjs && npx playwright test",
+    "test": "npm run test:data && node scripts/build.mjs && npx playwright test",
     "og": "python3 scripts/og.py",
     "font": "python3 scripts/subset-font.py",
     "map": "python3 scripts/build-map.py"

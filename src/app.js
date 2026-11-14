@@ -1827,7 +1827,8 @@
     nav: function(){ return navStack.map(function(f){ return f.level; }); },
     zoom: function(){ return zoomFactor(); },
     selected: function(){ return { kind:selectedKind, id:selectedId }; },
-    screenShort: function(kind, id){ return screenBox(kind, id).short; }
+    screenShort: function(kind, id){ return screenBox(kind, id).short; },
+    constants: function(){ return { TAP_MIN:TAP_MIN, LABEL_MIN:LABEL_MIN, ZOOM_MAX:ZOOM_MAX }; }
   };
 
   if (document.readyState === 'loading'){

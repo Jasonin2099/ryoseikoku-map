@@ -346,6 +346,40 @@ test('labels appear when a country is wide enough', async ({ page }) => {
   await expect(page.locator('.kuni-label', { hasText: '山城' })).toBeVisible();
 });
 
+
+test('search empty state and Escape clears the query', async ({ page }) => {
+  await ready(page);
+  await page.locator('#searchInput').fill('存在しない国名xyz');
+  await expect(page.locator('#searchResults')).toBeVisible();
+  await expect(page.locator('#searchResults .search-empty')).toBeVisible();
+  await page.locator('#searchInput').press('Escape');
+  await expect(page.locator('#searchResults')).toBeHidden();
+  await expect(page.locator('#searchInput')).toHaveValue('');
+});
+
+test('zoom constants and size thresholds match the spec', async ({ page }) => {
+  await ready(page);
+  const c = await page.evaluate(() => window.__kuniTest.constants());
+  expect(c.TAP_MIN).toBe(44);
+  expect(c.LABEL_MIN).toBe(56);
+  expect(c.ZOOM_MAX).toBe(24);
+  const mutsu = await page.evaluate(() => window.__kuniTest.screenShort('kuni', 'mutsu'));
+  const yamashiro = await page.evaluate(() => window.__kuniTest.screenShort('kuni', 'yamashiro'));
+  /* 畿内の小国は全国視点で 44px 未満。陸奥はそれより大きいが、
+     狭いモバイル幅では 44px に届かないことがある。 */
+  expect(yamashiro).toBeLessThan(c.TAP_MIN);
+  expect(mutsu).toBeGreaterThan(yamashiro);
+  const width = page.viewportSize() ? page.viewportSize().width : 0;
+  if (width >= 1000) expect(mutsu).toBeGreaterThan(c.TAP_MIN);
+  await page.locator('.dao-chip[data-dao="kinai"]').click();
+  await page.waitForTimeout(400);
+  const after = await page.evaluate(() => window.__kuniTest.screenShort('kuni', 'yamashiro'));
+  expect(after).toBeGreaterThan(yamashiro);
+  const zoom = await page.evaluate(() => window.__kuniTest.zoom());
+  expect(zoom).toBeGreaterThan(1);
+  expect(zoom).toBeLessThanOrEqual(c.ZOOM_MAX);
+});
+
 test('screenshots: light full, kinai two-step, sanyodo, labels, dark', async ({ page }, testInfo) => {
   test.setTimeout(90000);
   const SHOTS = zoomShotDir();

@@ -84,3 +84,33 @@ if (!regions.outside || !regions.outside.hokkaido || !regions.outside.ryukyu) {
   throw new Error('kuni-regions missing outside groups');
 }
 console.log('data-check ok: kuni-regions covers 68 provinces');
+
+for (const p of list) {
+  for (const k of ['origin', 'origin_ja', 'ref', 'ref_ja']) {
+    if (!String(p[k] || '').trim()) throw new Error(p.id + ' empty ' + k);
+  }
+  if (!String(p.ja || '').trim()) throw new Error(p.id + ' empty ja name');
+  if (!String(p.kana || '').trim()) throw new Error(p.id + ' empty kana');
+}
+
+for (const name of ['FONT-NOTICE.md', 'LICENSE-DATA.md', 'data/SOURCES.md', 'LICENSE']) {
+  try {
+    await stat(path.join(root, name));
+  } catch {
+    throw new Error('missing ' + name);
+  }
+}
+
+const leakRe = /ikxing|kuni\.ikx|小红叶|momiji|\b(?:10|172|192|127)\.\d+\.\d+\.\d+\b/;
+const leakFiles = [
+  'src/app.js', 'src/index.html', 'src/style.css', 'README.md', 'ROADMAP.md',
+  'data/SOURCES.md', 'LICENSE-DATA.md', 'FONT-NOTICE.md', 'docs/HANDOFF.md',
+  'docs/development.md', 'docs/site-config.md', 'package.json',
+];
+for (const rel of leakFiles) {
+  const text = await readFile(path.join(root, rel), 'utf8');
+  const m = text.match(leakRe);
+  if (m) throw new Error('source leak in ' + rel + ': ' + m[0]);
+}
+
+console.log('data-check ok: origin/ref texts, required notices, no private hosts in source');
