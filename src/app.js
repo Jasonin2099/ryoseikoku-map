@@ -53,6 +53,9 @@
           footNote:'地図の境界は、幕末期の村域データをもとにした令制国の復元です（典拠に基づく近似的な再構成）。等級と距離は延喜式、国府の郡名は和名類聚抄・拾芥抄、一宮は複数の名簿を照合した社名です（諸説のある国は併記）。',
           footFont:'見出し書体：京華老宋体（特里王）',
           wamyo:'和名抄', jikaisho:'拾芥抄', iroha:'伊呂波字類抄',
+          skipSearch:'検索へ', skipMap:'地図へ', skipNote:'地図をスキップ',
+          shown:function(name){ return name+'を表示しています'; },
+          closed:'詳細を閉じました',
           shareText:function(p,prefs){ return p.ja+'（'+p.kana+'）は、今の'+prefs+'。\nあなたの地元は昔、何国？'; } },
     zh: { lede:'点亮一方水土，唤回它千年前的旧名。<br>从陆奥到萨摩，六十八国，皆有来处。',
           all:'全部', hint:'轻触任一区域 · 查看旧国名', fail:'地图数据加载失败，请刷新重试',
@@ -71,6 +74,9 @@
           footNote:'地图边界是根据幕末期村域数据复原的令制国范围（依据出典的近似重建）。等级与距离据延喜式，国府郡名据和名类聚抄、拾芥抄，一宫据多份名录对照（有诸说者一并列出）。',
           footFont:'标题字体：京华老宋体（特里王）',
           wamyo:'和名抄', jikaisho:'拾芥抄', iroha:'伊吕波字类抄',
+          skipSearch:'跳到搜索', skipMap:'跳到地图', skipNote:'跳过地图',
+          shown:function(name){ return '正在显示'+name; },
+          closed:'已关闭详情',
           shareText:function(p,prefs){ return p.ja+'（'+p.kana+'）就是今天的'+prefs+'。\n你的家乡古时叫什么国？'; } }
   };
 
@@ -240,6 +246,9 @@
     if (elSearchClear) elSearchClear.setAttribute('aria-label', T('searchClear'));
     if (q('footNote')) q('footNote').textContent = T('footNote');
     if (q('footFont')) q('footFont').textContent = T('footFont');
+    if (q('skipSearch')) q('skipSearch').textContent = T('skipSearch');
+    if (q('skipMap')) q('skipMap').textContent = T('skipMap');
+    if (q('skipNote')) q('skipNote').textContent = T('skipNote');
     renderCrumb();
   }
 
@@ -409,11 +418,15 @@
     }
     for (key in kuniEls){
       if (!kuniEls.hasOwnProperty(key)) continue;
-      kuniEls[key].classList.toggle('is-match', !filtering || kuniMatches(key));
+      var kMatch = !filtering || kuniMatches(key);
+      kuniEls[key].classList.toggle('is-match', kMatch);
+      kuniEls[key].setAttribute('tabindex', kMatch ? '0' : '-1');
     }
     for (key in outsideEls){
       if (!outsideEls.hasOwnProperty(key)) continue;
-      outsideEls[key].classList.toggle('is-match', !filtering || outsideMatches(key));
+      var oMatch = !filtering || outsideMatches(key);
+      outsideEls[key].classList.toggle('is-match', oMatch);
+      outsideEls[key].setAttribute('tabindex', oMatch ? '0' : '-1');
     }
     updateLabels();
   }
@@ -477,7 +490,11 @@
         e.preventDefault();
         var buttons = searchButtons();
         var target = (searchActive >= 0 && buttons[searchActive]) ? buttons[searchActive] : buttons[0];
-        if (target) openSearchHit(target.getAttribute('data-kind') || 'kuni', target.getAttribute('data-id'));
+        if (target){
+          openFromKeyboard = true;
+          focusRestore = elSearch;
+          openSearchHit(target.getAttribute('data-kind') || 'kuni', target.getAttribute('data-id'));
+        }
       }
     });
     if (elSearchClear) elSearchClear.addEventListener('click', clearSearch);
@@ -739,6 +756,8 @@
     el.addEventListener('keydown', function(e){
       if (e.key === 'Enter' || e.key === ' '){
         e.preventDefault();
+        openFromKeyboard = true;
+        focusRestore = el;
         handleTap(kind, id);
       }
     });
@@ -1407,6 +1426,33 @@
     }
   }
 
+
+  function announce(msg){
+    var el = document.getElementById('mapStatus');
+    if (!el) return;
+    el.textContent = '';
+    window.setTimeout(function(){ el.textContent = msg || ''; }, 40);
+  }
+
+  function callStr(key, arg){
+    var fn = STR[lang] && STR[lang][key];
+    return typeof fn === 'function' ? fn(arg) : (T(key) || '');
+  }
+
+  var focusRestore = null;
+  var openFromKeyboard = false;
+
+  function focusDrawer(){
+    if (!elDrawerBody) return;
+    var heading = elDrawerBody.querySelector('h2, .pc-kanji, .d-prefname b');
+    if (heading){
+      if (!heading.hasAttribute('tabindex')) heading.setAttribute('tabindex', '-1');
+      heading.focus();
+    } else if (elDrawerClose){
+      elDrawerClose.focus();
+    }
+  }
+
   /* ---------- drawer ---------- */
 
   function renderDrawer(){
@@ -1416,7 +1462,7 @@
       var name = selectedId === 'hokkaido' ? T('hokkaidoName') : T('ryukyuName');
       var note = selectedId === 'hokkaido' ? T('hokkaido') : T('okinawa');
       html += '<p class="d-pref">' + esc(T('prefLabel')) + '</p>';
-      html += '<p class="d-prefname"><b>' + esc(name) + '</b></p>';
+      html += '<h2 class="d-prefname"><b>' + esc(name) + '</b></h2>';
       html += '<div class="empty-note">' + note + '</div>';
       elDrawerBody.innerHTML = html;
       return;
@@ -1430,7 +1476,7 @@
     html += '<div class="prov-card" id="pc-' + esc(p.id) + '">';
     html +=   '<div class="d-summary">';
     html +=     '<div class="pc-head">';
-    html +=       '<span class="pc-kanji">' + esc(p.ja) + '国</span>';
+    html +=       '<h2 class="pc-kanji">' + esc(p.ja) + '国</h2>';
     html +=       '<span class="pc-kana">' + esc(p.kana + 'のくに') + '</span>';
     html +=       '<span class="visually-hidden">' + esc(formal) + '</span>';
     html +=       '<span class="pc-romaji">' + esc(p.romaji) + '</span>';
@@ -1516,15 +1562,33 @@
       elScrim.classList.remove('show');
       elScrim.hidden = true;
     }
+    if (openFromKeyboard){
+      openFromKeyboard = false;
+      requestAnimationFrame(focusDrawer);
+    }
+    var shownName = '';
+    if (selectedKind === 'outside'){
+      shownName = selectedId === 'hokkaido' ? T('hokkaidoName') : T('ryukyuName');
+    } else if (selectedId && provById[selectedId]){
+      shownName = provById[selectedId].ja;
+    }
+    if (shownName) announce(callStr('shown', shownName));
   }
 
   function closeDrawerUI(){
+    var wasOpen = elDrawer.classList.contains('open');
     elDrawer.classList.remove('open', 'height-half', 'height-full');
     elDrawer.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('has-panel', 'has-sheet');
     syncMobileMapFrame();
     elScrim.classList.remove('show');
     setTimeout(function(){ if (!elDrawer.classList.contains('open')) elScrim.hidden = true; }, 420);
+    if (wasOpen) announce(T('closed'));
+    if (focusRestore && typeof focusRestore.focus === 'function'){
+      var back = focusRestore;
+      focusRestore = null;
+      try { back.focus(); } catch (e) {}
+    }
   }
 
   var keepZoomOnPop = false;

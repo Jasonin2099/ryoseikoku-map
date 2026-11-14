@@ -52,6 +52,11 @@
 </head>
 <body>
 
+<a class="skip-link" href="#searchInput" id="skipSearch">検索へ</a>
+<a class="skip-link" href="#mapWrap" id="skipMap">地図へ</a>
+<a class="skip-link" href="#siteFoot" id="skipNote">地図をスキップ</a>
+<div class="visually-hidden" id="mapStatus" aria-live="polite" aria-atomic="true"></div>
+
 <header class="page-head">
   <div class="head-toggles head-toggles-left">
     <button class="bar-toggle" id="themeToggle" type="button" aria-label="ダークモードに切り替え">ダーク</button>
@@ -106,7 +111,7 @@
 </aside>
 </div>
 
-<footer class="site-foot">
+<footer class="site-foot" id="siteFoot">
   <p id="footNote"></p>
   <p id="footFont"></p>
 </footer>

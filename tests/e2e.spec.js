@@ -347,6 +347,32 @@ test('labels appear when a country is wide enough', async ({ page }) => {
 });
 
 
+
+test('skip link becomes visible on focus and jumps to search', async ({ page }) => {
+  await ready(page);
+  const skip = page.locator('#skipSearch');
+  await skip.focus();
+  await expect(skip).toBeFocused();
+  const box = await skip.boundingBox();
+  expect(box).toBeTruthy();
+  expect(box.width).toBeGreaterThan(8);
+  expect(box.height).toBeGreaterThan(8);
+  await skip.press('Enter');
+  await expect(page.locator('#searchInput')).toBeFocused();
+});
+
+test('keyboard selection moves focus into the drawer', async ({ page }) => {
+  await ready(page);
+  const input = page.locator('#searchInput');
+  await input.fill('やましろ');
+  await expect(page.locator('#searchResults button[data-id="yamashiro"]')).toBeVisible();
+  await input.press('ArrowDown');
+  await input.press('Enter');
+  await expect(page.locator('#drawer')).toHaveClass(/open/);
+  await expect(page.locator('#pc-yamashiro h2.pc-kanji')).toBeFocused();
+  await expect(page.locator('#mapStatus')).toContainText('山城');
+});
+
 test('search empty state and Escape clears the query', async ({ page }) => {
   await ready(page);
   await page.locator('#searchInput').fill('存在しない国名xyz');
