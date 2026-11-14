@@ -44,7 +44,7 @@
           themeToLight:'ライト', themeToLightLabel:'ライトモードに切り替え',
           title:'令制国 · あなたの地元、昔は何国？',
           pending:'（日本語訳は準備中です。中国語の原文を表示しています）',
-          hokkaido:'明治以前の北海道は<b>蝦夷地</b>と呼ばれ、律令の「五畿七道」の外にあったため、令制国は置かれていません。1869年（明治2年）に北海道と改称され、五畿七道は「五畿八道」となりました。',
+          hokkaido:'明治以前の北海道は<b>蝦夷地</b>と呼ばれ、律令の「五畿七道」の外にあったため、令制国は置かれていません。1869年（明治2年）に北海道と改称され、五畿七道は「五畿八道」となりました。この地図の北海道の外形には、北方四島は含まれていません（典拠の範囲に従っています）。',
           okinawa:'明治以前の沖縄は独立した<b>琉球王国</b>で、令制国の体系には含まれません。1872年に琉球藩が置かれ、1879年の「琉球処分」で沖縄県となりました。',
           search:'国名・読み・県名・一宮・道名で探す', searchClear:'検索を消す', searchEmpty:'見つかりませんでした',
           grade:'等級', distance:'距離', kokufu:'国府', ichinomiya:'一宮', disputed:'諸説あり', none:'記載なし',
@@ -53,6 +53,8 @@
           footNote:'地図の境界は、幕末期の村域データをもとにした令制国の復元です（典拠に基づく近似的な再構成）。等級と距離は延喜式、国府の郡名は和名類聚抄・拾芥抄、一宮は複数の名簿を照合した社名です（諸説のある国は併記）。',
           footFont:'見出し書体：京華老宋体（特里王）',
           wamyo:'和名抄', jikaisho:'拾芥抄', iroha:'伊呂波字類抄',
+          metaDesc:'日本地図をタップすると、今の都道府県が令制国の旧国名に戻ります。読み方・五畿七道・延喜式の等級と距離・国府の郡名・地名の由来まで。',
+          mapLimits:'北海道の外形に北方四島は含みません。小笠原は図の都合で省き、奄美・トカラは原データの対象外のため図上は薩摩に接続しています（令制国としての所属を示すものではありません）。',
           skipSearch:'検索へ', skipMap:'地図へ', skipNote:'地図をスキップ',
           shown:function(name){ return name+'を表示しています'; },
           closed:'詳細を閉じました',
@@ -65,7 +67,7 @@
           themeToDark:'深色', themeToDarkLabel:'切换到深色模式',
           themeToLight:'浅色', themeToLightLabel:'切换到浅色模式',
           title:'令制国 · 五畿七道交互地图', pending:'',
-          hokkaido:'北海道在明治以前称<b>蝦夷地</b>，是律令「五畿七道」体系之外的化外之地，并无令制国。1869年戊辰战争后改置北海道，五畿七道遂称「五畿八道」。',
+          hokkaido:'北海道在明治以前称<b>蝦夷地</b>，是律令「五畿七道」体系之外的化外之地，并无令制国。1869年戊辰战争后改置北海道，五畿七道遂称「五畿八道」。本地图中北海道的外形不含北方四岛（依据出典范围）。',
           okinawa:'冲绳在明治以前为独立的<b>琉球王国</b>，不属日本令制国体系。1872年设琉球藩，1879年「琉球处分」后置冲绳县。',
           search:'按国名、读音、县名、一宫、道名搜索', searchClear:'清除搜索', searchEmpty:'没有找到',
           grade:'等级', distance:'距离', kokufu:'国府', ichinomiya:'一宫', disputed:'诸说', none:'无记载',
@@ -74,6 +76,8 @@
           footNote:'地图边界是根据幕末期村域数据复原的令制国范围（依据出典的近似重建）。等级与距离据延喜式，国府郡名据和名类聚抄、拾芥抄，一宫据多份名录对照（有诸说者一并列出）。',
           footFont:'标题字体：京华老宋体（特里王）',
           wamyo:'和名抄', jikaisho:'拾芥抄', iroha:'伊吕波字类抄',
+          metaDesc:'点按日本地图，今日的都道府县便回到令制国的旧名。读音、五畿七道、延喜式的等级与距离、国府郡名与地名由来。',
+          mapLimits:'北海道的外形不含北方四岛。小笠原因图幅关系省略；奄美、吐噶喇不在原数据范围内，图上与萨摩相连，并不表示令制国的归属。',
           skipSearch:'跳到搜索', skipMap:'跳到地图', skipNote:'跳过地图',
           shown:function(name){ return '正在显示'+name; },
           closed:'已关闭详情',
@@ -245,7 +249,10 @@
     var sl = q('searchLabel'); if (sl) sl.textContent = T('search');
     if (elSearchClear) elSearchClear.setAttribute('aria-label', T('searchClear'));
     if (q('footNote')) q('footNote').textContent = T('footNote');
+    if (q('footLimits')) q('footLimits').textContent = T('mapLimits');
     if (q('footFont')) q('footFont').textContent = T('footFont');
+    var desc = document.querySelector('meta[name="description"]');
+    if (desc) desc.setAttribute('content', T('metaDesc'));
     if (q('skipSearch')) q('skipSearch').textContent = T('skipSearch');
     if (q('skipMap')) q('skipMap').textContent = T('skipMap');
     if (q('skipNote')) q('skipNote').textContent = T('skipNote');

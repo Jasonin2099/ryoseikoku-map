@@ -348,6 +348,25 @@ test('labels appear when a country is wide enough', async ({ page }) => {
 
 
 
+
+test('footer notes map coverage limits in both languages', async ({ page }) => {
+  await ready(page);
+  await expect(page.locator('#footLimits')).toContainText('北方四島');
+  await expect(page.locator('#footLimits')).toContainText('小笠原');
+  await expect(page.locator('#footLimits')).toContainText('奄美');
+  await page.locator('#langToggle').click();
+  await expect(page.locator('#footLimits')).toContainText('北方四岛');
+  await expect(page.locator('#footLimits')).toContainText('小笠原');
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /令制国/);
+});
+
+test('Hokkaido drawer mentions the Northern Territories gap', async ({ page }) => {
+  await ready(page);
+  await page.locator('#searchInput').fill('蝦夷地');
+  await page.locator('#searchResults button[data-id="hokkaido"]').click();
+  await expect(page.locator('#drawerBody')).toContainText('北方四島');
+});
+
 test('skip link becomes visible on focus and jumps to search', async ({ page }) => {
   await ready(page);
   const skip = page.locator('#skipSearch');
