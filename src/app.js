@@ -293,6 +293,17 @@
       info = kuniInfo[id];
       info.bb = { x:info.bbox[0], y:info.bbox[1], w:info.bbox[2], h:info.bbox[3] };
     }
+    /* The built kuni-regions.json leaves out outlines already in map.json. */
+    fillPaths(kuniInfo);
+    fillPaths((regions && regions.outside) || {});
+  }
+
+  function fillPaths(group){
+    var id;
+    for (id in group){
+      if (!group.hasOwnProperty(id)) continue;
+      if (!group[id].d && mapData.paths[id]) group[id].d = mapData.paths[id].d;
+    }
   }
 
   function buildDaoChips(){

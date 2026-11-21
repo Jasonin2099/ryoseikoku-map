@@ -117,9 +117,23 @@ async function copyTo(src, destName) {
   await cp(src, path.join(dist, destName));
 }
 
-await copyTo(path.join(root, 'data/map.json'), 'map.json');
-await copyTo(path.join(root, 'data/provinces.json'), 'provinces.json');
-await copyTo(path.join(root, 'data/kuni-regions.json'), 'kuni-regions.json');
+// JSON for the browser: no indentation, and no second copy of the outlines.
+// kuni-regions.json repeats every path from map.json (about 300 KB); the app
+// falls back to map.json when a region has no "d", so drop the duplicates.
+const mapJson = JSON.parse(await readFile(path.join(root, 'data/map.json'), 'utf8'));
+const provJson = JSON.parse(await readFile(path.join(root, 'data/provinces.json'), 'utf8'));
+const regionsJson = JSON.parse(await readFile(path.join(root, 'data/kuni-regions.json'), 'utf8'));
+for (const group of ['kuni', 'outside']) {
+  for (const [id, rec] of Object.entries(regionsJson[group] || {})) {
+    if (rec.d && mapJson.paths[id] && mapJson.paths[id].d === rec.d) delete rec.d;
+  }
+}
+async function writeJson(name, data) {
+  await writeFile(path.join(dist, name), JSON.stringify(data));
+}
+await writeJson('map.json', mapJson);
+await writeJson('provinces.json', provJson);
+await writeJson('kuni-regions.json', regionsJson);
 await copyTo(path.join(root, 'assets/icon.svg'), 'icon.svg');
 await copyTo(path.join(root, 'assets/icon-32.png'), 'icon-32.png');
 await copyTo(path.join(root, 'assets/apple-touch-icon.png'), 'apple-touch-icon.png');
