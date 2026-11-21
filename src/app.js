@@ -217,11 +217,9 @@
           openFromHash();
         });
       }
-      if (document.fonts && document.fonts.ready){
-        document.fonts.ready.then(afterDraw).catch(afterDraw);
-      } else {
-        afterDraw();
-      }
+      /* Labels use fixed widths, so nothing waits for the web font
+         (font-display: swap); the map no longer waits for its download. */
+      afterDraw();
     }).catch(function(err){
       elHint.textContent = T('fail');
       if (window.console) console.error('[ryoseikoku] load error:', err);

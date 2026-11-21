@@ -19,6 +19,30 @@ test('home loads and map is visible', async ({ page }, testInfo) => {
   });
 });
 
+test('map draws while the web font is still loading', async ({ page }) => {
+  let release;
+  const held = new Promise((resolve) => { release = resolve; });
+  await page.route(/jinghua-sub\.woff2/, async (route) => {
+    await held;
+    await route.continue().catch(() => {});
+  });
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#mapSvg path.region')).toHaveCount(70, { timeout: 10000 });
+  await expect(page.locator('#mapSvg path.kuni-hit')).toHaveCount(68);
+  release();
+});
+
+test('kuni hit targets reuse outlines from map.json', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('#mapSvg path.kuni-hit')).toHaveCount(68);
+  const same = await page.evaluate(() => {
+    const hit = document.getElementById('kuni-yamashiro');
+    const region = document.querySelector('#mapSvg path.region[data-id="yamashiro"]');
+    return !!hit && !!region && hit.getAttribute('d') === region.getAttribute('d') && hit.getAttribute('d').length > 8;
+  });
+  expect(same).toBe(true);
+});
+
 test('hash opens yamashiro with grade and kokufu', async ({ page }, testInfo) => {
   await page.goto('/#yamashiro');
   await expect(page.locator('#drawer')).toHaveClass(/open/);
