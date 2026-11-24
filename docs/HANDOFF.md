@@ -34,7 +34,7 @@ npm run serve
 ```
 
 - `npm test` は `tests/data-check.mjs` ほかのデータ検査、`npm run build`、`tests/dist-check.mjs`、Playwright（`tests/e2e.spec.js`）をこの順で走らせます。
-- ビルドは JSON をインデントなしで `dist/` に書き、`kuni-regions.json` からは `map.json` と同じ輪郭（`d`）を外します（アプリは `map.json` から補います）。`data/` 側のファイルはそのままです。`dist-check` は重複がないことと、JSON の合計サイズの上限を確かめます。
+- ビルドは JSON をインデントなしで `dist/` に書き、`kuni-regions.json` からは `map.json` と同じ輪郭（`d`）を外します（アプリは `map.json` から補います）。`data/` 側のファイルはそのままです。さらに輪郭は `scripts/compact-path.mjs` で、同じ 0.1 単位の格子のまま相対座標（`M360.6 629.6l-.7-.6…z`）に書き換えます。頂点の位置は変わりません（連続する同じ点と、始点と同じ終点だけを省きます）。`map.json` は約 299 KB → 約 141 KB（gzip 約 94 KB → 約 48 KB）です。`dist-check` は重複がないこと、輪郭の頂点が `data/` と一致すること、JSON の合計サイズの上限（260 KB）を確かめます。
 - 開発用サーバは **http://localhost:4179/** です。4173 番は使わないでください（他のプロジェクトと衝突します）。
 - 公式の原書体は作者の案内（微信公眾号と網盤）でのみ入手でき、安定した公開ダウンロード URL はありません。GitHub Actions では環境変数 `FONT_OPTIONAL=1` を立て、サブセットを省略してビルドします。見出しはシステムの明朝体に落ちます。原ファイルを置いた環境では、この変数を立てなければ従来どおり SHA-256 を検証してサブセットします。
 - キャッシュbust 用のクエリは `scripts/build.mjs` がビルド時に付けます。作業ツリーがきれいなら git の短縮ハッシュ、汚れているか git が使えないときはソースの内容ハッシュです。`src/app.js` の `__ASSET_VERSION__` と、CSS / フォントの URL も同じ値に置き換わります。手動で数字を上げる必要はありません。

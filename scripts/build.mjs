@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { minify as minifyJs } from 'terser';
 import CleanCSS from 'clean-css';
+import { compactPath } from './compact-path.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dist = path.join(root, 'dist');
@@ -126,6 +127,14 @@ const regionsJson = JSON.parse(await readFile(path.join(root, 'data/kuni-regions
 for (const group of ['kuni', 'outside']) {
   for (const [id, rec] of Object.entries(regionsJson[group] || {})) {
     if (rec.d && mapJson.paths[id] && mapJson.paths[id].d === rec.d) delete rec.d;
+  }
+}
+// Outlines as relative moves on the same 0.1 grid (lossless; about half the
+// bytes). See scripts/compact-path.mjs.
+for (const rec of Object.values(mapJson.paths)) rec.d = compactPath(rec.d);
+for (const group of ['kuni', 'outside']) {
+  for (const rec of Object.values(regionsJson[group] || {})) {
+    if (rec.d) rec.d = compactPath(rec.d);
   }
 }
 async function writeJson(name, data) {
