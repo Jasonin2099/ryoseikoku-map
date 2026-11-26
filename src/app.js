@@ -1042,12 +1042,55 @@
 
   /* ---------- labels ---------- */
 
-  function updateLabels(){
-    if (!elLabels || !kuniInfo) return;
+  /*
+   * Labels are re-placed on every viewBox change (each animation frame and
+   * pointer move while panning), so this keeps one <span> per province and
+   * only moves it (transform, no layout), hides it, or flips is-selected.
+   * Rebuilding ~68 spans with innerHTML every frame made the browser restyle
+   * and relayout all of them each time. The map and wrapper rects are cached
+   * and dropped (labels re-placed) by a ResizeObserver; without one they are
+   * read on every call.
+   */
+  var labelEls = {};
+  var labelRects = null;
+  var labelRO = null;
+
+  function labelGeometry(){
+    if (labelRects) return labelRects;
     var r = elSvg.getBoundingClientRect();
     var wrap = elMapWrap.getBoundingClientRect();
-    var sx = r.width / vb.w, sy = r.height / vb.h;
-    var items = [], id, rec, b, wpx, name, lw, lh, left, top, filtering;
+    var g = { left:r.left - wrap.left, top:r.top - wrap.top, w:r.width, h:r.height, ww:wrap.width, wh:wrap.height };
+    if (!labelRO && typeof ResizeObserver === 'function'){
+      labelRO = new ResizeObserver(function(){ labelRects = null; updateLabels(); });
+      labelRO.observe(elSvg);
+      labelRO.observe(elMapWrap);
+    }
+    if (labelRO) labelRects = g;
+    return g;
+  }
+
+  function labelEl(id, name){
+    var el = labelEls[id];
+    if (!el){
+      el = document.createElement('span');
+      el.className = 'kuni-label';
+      el.setAttribute('data-id', id);
+      el.textContent = name;
+      el.hidden = true;
+      el._shown = false;
+      el._sel = false;
+      el._pos = '';
+      elLabels.appendChild(el);
+      labelEls[id] = el;
+    }
+    return el;
+  }
+
+  function updateLabels(){
+    if (!elLabels || !kuniInfo) return;
+    var g = labelGeometry();
+    var sx = g.w / vb.w, sy = g.h / vb.h;
+    var items = [], id, rec, b, wpx, name, lw, lh, left, top, filtering, selected;
     filtering = elMapWrap.classList.contains('filtering');
     for (id in kuniInfo){
       if (!kuniInfo.hasOwnProperty(id)) continue;
@@ -1057,19 +1100,20 @@
       if (wpx < LABEL_MIN) continue;
       if (filtering && kuniEls[id] && !kuniEls[id].classList.contains('is-match')) continue;
       name = rec.ja;
+      selected = selectedId === id && selectedKind === 'kuni';
       lw = name.length * 12 + 8;
-      lh = (selectedId === id && selectedKind === 'kuni') ? 18 : 16;
-      left = r.left + (rec.cx - vb.x) * sx - wrap.left;
-      top = r.top + (rec.cy - vb.y) * sy - wrap.top;
-      if (left < -20 || top < -20 || left > wrap.width + 20 || top > wrap.height + 20) continue;
+      lh = selected ? 18 : 16;
+      left = g.left + (rec.cx - vb.x) * sx;
+      top = g.top + (rec.cy - vb.y) * sy;
+      if (left < -20 || top < -20 || left > g.ww + 20 || top > g.wh + 20) continue;
       items.push({
         id:id, name:name, area:rec.area, left:left, top:top,
         box:{ x:left-lw/2, y:top-lh/2, w:lw, h:lh },
-        selected: selectedId === id && selectedKind === 'kuni'
+        selected: selected
       });
     }
     items.sort(function(a,c){ return c.area - a.area; });
-    var placed = [], i, j, it, ok;
+    var placed = [], shown = {}, i, j, it, ok, el, pos;
     function overlap(a,b){
       return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
     }
@@ -1078,19 +1122,20 @@
       for (j=0;j<placed.length;j++){
         if (overlap(it.box, placed[j].box)){ ok = false; break; }
       }
-      it.show = ok;
-      if (ok) placed.push(it);
+      if (!ok) continue;
+      placed.push(it);
+      shown[it.id] = true;
+      el = labelEl(it.id, it.name);
+      pos = 'translate(' + it.left.toFixed(1) + 'px,' + it.top.toFixed(1) + 'px) translate(-50%,-50%)';
+      if (el._pos !== pos){ el.style.transform = pos; el._pos = pos; }
+      if (el._sel !== it.selected){ el.classList.toggle('is-selected', it.selected); el._sel = it.selected; }
+      if (!el._shown){ el.hidden = false; el._shown = true; }
     }
-    var html = '', sel;
-    for (i=0;i<items.length;i++){
-      it = items[i];
-      if (!it.show) continue;
-      sel = it.selected ? ' is-selected' : '';
-      html += '<span class="kuni-label' + sel + '" data-id="' + esc(it.id) +
-        '" style="left:' + it.left.toFixed(1) + 'px;top:' + it.top.toFixed(1) + 'px">' +
-        esc(it.name) + '</span>';
+    for (id in labelEls){
+      if (!labelEls.hasOwnProperty(id) || shown[id]) continue;
+      el = labelEls[id];
+      if (el._shown){ el.hidden = true; el._shown = false; }
     }
-    elLabels.innerHTML = html;
   }
 
 

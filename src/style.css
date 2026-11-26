@@ -589,7 +589,7 @@ h2.d-prefname{margin-top:0;}
   pointer-events:none;overflow:hidden;z-index:8;
 }
 .kuni-label{
-  position:absolute;
+  position:absolute;left:0;top:0;
   transform:translate(-50%,-50%);
   font-family:var(--font-title);
   font-size:12px;font-weight:400;

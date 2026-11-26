@@ -364,10 +364,31 @@ test('labels appear when a country is wide enough', async ({ page }) => {
   await ready(page);
   await page.locator('.dao-chip[data-dao="kinai"]').click();
   await page.waitForTimeout(400);
-  await expect(page.locator('.kuni-label')).toHaveCount(await page.locator('.kuni-label').count());
-  const n = await page.locator('.kuni-label').count();
+  const n = await page.locator('.kuni-label:visible').count();
   expect(n).toBeGreaterThan(0);
   await expect(page.locator('.kuni-label', { hasText: '山城' })).toBeVisible();
+});
+
+test('labels are moved in place, not rebuilt, while the map zooms', async ({ page }) => {
+  await ready(page);
+  await page.locator('.dao-chip[data-dao="kinai"]').click();
+  await page.waitForTimeout(400);
+  const label = page.locator('.kuni-label', { hasText: '山城' });
+  await expect(label).toBeVisible();
+  await label.evaluate((el) => { el.dataset.mark = 'kept'; });
+  const before = await label.boundingBox();
+  await page.evaluate(() => window.__kuniTest.select('kuni', 'yamashiro'));
+  await page.waitForTimeout(900);
+  // Same element (not re-created), now centred somewhere else and marked selected.
+  await expect(page.locator('.kuni-label[data-mark="kept"]')).toHaveText('山城');
+  await expect(page.locator('.kuni-label[data-mark="kept"]')).toHaveClass(/is-selected/);
+  const after = await page.locator('.kuni-label[data-mark="kept"]').boundingBox();
+  expect(Math.abs(after.x - before.x) + Math.abs(after.y - before.y)).toBeGreaterThan(1);
+  // One element per province at most; hidden ones are display:none.
+  const ids = await page.locator('.kuni-label').evaluateAll((els) => els.map((e) => e.getAttribute('data-id')));
+  expect(new Set(ids).size).toBe(ids.length);
+  const hiddenShown = await page.locator('.kuni-label[hidden]').evaluateAll((els) => els.filter((e) => getComputedStyle(e).display !== 'none').length);
+  expect(hiddenShown).toBe(0);
 });
 
 
